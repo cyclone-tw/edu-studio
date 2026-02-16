@@ -535,6 +535,50 @@
     });
   }
 
+  /**
+   * Generate filename with date prefix and title
+   * Format: YYYY-MM-DD-標題.ext
+   */
+  function generateFilename(extension) {
+    var yamlContent = dom.yamlEditor.value;
+    var title = 'presentation';
+
+    // Try to extract title from YAML content
+    try {
+      var data = jsyaml.load(yamlContent);
+      if (data && data.title) {
+        title = data.title;
+      } else if (Array.isArray(data) && data[0] && data[0].title) {
+        title = data[0].title;
+      }
+    } catch (e) {
+      // If YAML parse fails, try to extract from first line
+      var lines = yamlContent.split('\n');
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (line.startsWith('title:')) {
+          title = line.replace('title:', '').trim().replace(/^['"]|['"]$/g, '');
+          break;
+        }
+      }
+    }
+
+    // Sanitize title for filename (remove special chars, limit length)
+    title = title
+      .replace(/[<>:"/\\|?*]/g, '') // Remove invalid filename chars
+      .replace(/\s+/g, '-')          // Replace spaces with hyphens
+      .substring(0, 50);             // Limit length
+
+    // Get current date in YYYY-MM-DD format
+    var now = new Date();
+    var year = now.getFullYear();
+    var month = String(now.getMonth() + 1).padStart(2, '0');
+    var day = String(now.getDate()).padStart(2, '0');
+    var datePrefix = year + '-' + month + '-' + day;
+
+    return datePrefix + '-' + title + '.' + extension;
+  }
+
   function initExportButtons() {
     dom.btnDownloadYaml.addEventListener('click', function () {
       var content = dom.yamlEditor.value;
@@ -542,7 +586,8 @@
         showToast('沒有可下載的內容', 'error');
         return;
       }
-      downloadFile(content, 'presentation.txt', 'text/plain');
+      var filename = generateFilename('txt');
+      downloadFile(content, filename, 'text/plain');
       showToast('TXT 已下載', 'success');
     });
 
@@ -554,7 +599,8 @@
       }
 
       var mdContent = yamlToMarkdownOutline(yamlContent);
-      downloadFile(mdContent, 'presentation-outline.md', 'text/markdown');
+      var filename = generateFilename('md');
+      downloadFile(mdContent, filename, 'text/markdown');
       showToast('Markdown 大綱已下載', 'success');
     });
   }
