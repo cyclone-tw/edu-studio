@@ -77,7 +77,9 @@
     btnOpenHelp:       $('#btnOpenHelp'),
     helpModal:         $('#helpModal'),
     btnCloseHelp:      $('#btnCloseHelp'),
-    btnHelpOk:         $('#btnHelpOk')
+    btnHelpOk:         $('#btnHelpOk'),
+    btnCopyYaml:       $('#btnCopyYaml'),
+    yamlPreview:       $('#yamlPreview')
   };
 
   // ──────────────────────────────────────────────
@@ -609,7 +611,7 @@
 
   function initExportButtons() {
     dom.btnDownloadYaml.addEventListener('click', function () {
-      var content = dom.yamlEditor.value;
+      var content = dom.yamlPreview.value || dom.yamlEditor.value;
       if (!content) {
         showToast('沒有可下載的內容', 'error');
         return;
@@ -620,7 +622,7 @@
     });
 
     dom.btnDownloadMd.addEventListener('click', function () {
-      var yamlContent = dom.yamlEditor.value;
+      var yamlContent = dom.yamlPreview.value || dom.yamlEditor.value;
       if (!yamlContent) {
         showToast('沒有可下載的內容', 'error');
         return;
@@ -631,6 +633,52 @@
       downloadFile(mdContent, filename, 'text/markdown');
       showToast('Markdown 大綱已下載', 'success');
     });
+  }
+
+  function copyYamlToClipboard() {
+    var yamlContent = dom.yamlPreview.value;
+    if (!yamlContent) {
+      showToast('沒有可複製的 YAML 內容', 'error');
+      return;
+    }
+
+    // Try Clipboard API first (modern browsers)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(yamlContent)
+        .then(function () {
+          showToast('YAML 已複製到剪貼簿', 'success');
+        })
+        .catch(function (err) {
+          console.error('Clipboard API failed:', err);
+          fallbackCopy(yamlContent);
+        });
+    } else {
+      // Fallback for older browsers
+      fallbackCopy(yamlContent);
+    }
+  }
+
+  function fallbackCopy(text) {
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+      var successful = document.execCommand('copy');
+      if (successful) {
+        showToast('YAML 已複製到剪貼簿', 'success');
+      } else {
+        showToast('複製失敗，請手動複製', 'error');
+      }
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
+      showToast('複製失敗，請手動複製', 'error');
+    }
+
+    document.body.removeChild(textarea);
   }
 
   function downloadFile(content, filename, mimeType) {
@@ -795,6 +843,9 @@
     // Init generate & export
     initGenerateButton();
     initExportButtons();
+
+    // Init copy YAML button
+    dom.btnCopyYaml.addEventListener('click', copyYamlToClipboard);
 
     // Init API key modal
     initApiKeyModal();
