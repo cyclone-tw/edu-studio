@@ -708,6 +708,93 @@ body {
   line-height: 1.5;
 }
 
+/* Outline Editor Pane */
+.outline-editor-pane,
+.yaml-preview-pane {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.outline-editor {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  min-height: 360px;
+}
+
+.editor-placeholder {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: 80px;
+}
+
+/* YAML Preview Pane */
+.yaml-preview-textarea {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.7;
+  resize: none;
+  min-height: 360px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.yaml-preview-textarea:focus {
+  box-shadow: none;
+  outline: none;
+}
+
+/* Copy Button in Header */
+.editor-pane-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  font-weight: 500;
+}
+
+.btn-copy:hover {
+  opacity: 0.85;
+}
+
+.btn-copy svg {
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .editor-split {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .outline-editor,
+  .yaml-preview-textarea {
+    min-height: 300px;
+  }
+}
+
 /* ========================================
    PDF Panel
    ======================================== */
