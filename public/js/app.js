@@ -205,7 +205,7 @@
   function createCard(id, label, desc) {
     var parsed = parseLabel(label);
     var card = document.createElement('div');
-    card.className = 'select-card';
+    card.className = 'preset-card';
     card.setAttribute('data-id', id);
 
     var emojiSpan = document.createElement('span');
@@ -213,7 +213,7 @@
     emojiSpan.textContent = parsed.emoji;
 
     var labelSpan = document.createElement('span');
-    labelSpan.className = 'card-label';
+    labelSpan.className = 'card-name';
     labelSpan.textContent = parsed.text;
 
     card.appendChild(emojiSpan);
@@ -267,11 +267,11 @@
   function initCardGroup(container, stateKey) {
     if (!container) return;
     container.addEventListener('click', function (e) {
-      var card = e.target.closest('.select-card');
+      var card = e.target.closest('.preset-card');
       if (!card) return;
 
       // Deselect siblings in this container
-      container.querySelectorAll('.select-card').forEach(function (c) {
+      container.querySelectorAll('.preset-card').forEach(function (c) {
         c.classList.remove('selected');
       });
       card.classList.add('selected');
@@ -288,14 +288,14 @@
     var workContainer = dom.audienceCardsWork;
 
     function handleClick(e) {
-      var card = e.target.closest('.select-card');
+      var card = e.target.closest('.preset-card');
       if (!card) return;
 
       // Deselect all audience cards in both containers
-      eduContainer.querySelectorAll('.select-card').forEach(function (c) {
+      eduContainer.querySelectorAll('.preset-card').forEach(function (c) {
         c.classList.remove('selected');
       });
-      workContainer.querySelectorAll('.select-card').forEach(function (c) {
+      workContainer.querySelectorAll('.preset-card').forEach(function (c) {
         c.classList.remove('selected');
       });
 
