@@ -75,12 +75,25 @@ body {
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.header-subtitle {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-weight: 400;
+.header-logo {
+  height: 32px;
+  width: auto;
+  vertical-align: middle;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 .btn-api-key {
@@ -1570,8 +1583,8 @@ body {
     font-size: 1.15rem;
   }
 
-  .header-subtitle {
-    font-size: 0.75rem;
+  .header-logo {
+    height: 24px;
   }
 
   .btn-api-key span {
