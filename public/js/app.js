@@ -73,7 +73,11 @@
     btnCancelApiKey:   $('#btnCancelApiKey'),
     loadingOverlay:    $('#loadingOverlay'),
     loadingText:       $('#loadingText'),
-    toastContainer:    $('#toastContainer')
+    toastContainer:    $('#toastContainer'),
+    btnOpenHelp:       $('#btnOpenHelp'),
+    helpModal:         $('#helpModal'),
+    btnCloseHelp:      $('#btnCloseHelp'),
+    btnHelpOk:         $('#btnHelpOk')
   };
 
   // ──────────────────────────────────────────────
@@ -431,6 +435,30 @@
   }
 
   // ──────────────────────────────────────────────
+  // Help Modal
+  // ──────────────────────────────────────────────
+  function initHelpModal() {
+    dom.btnOpenHelp.addEventListener('click', function () {
+      dom.helpModal.classList.remove('hidden');
+    });
+
+    dom.btnCloseHelp.addEventListener('click', function () {
+      dom.helpModal.classList.add('hidden');
+    });
+
+    dom.btnHelpOk.addEventListener('click', function () {
+      dom.helpModal.classList.add('hidden');
+    });
+
+    // Click overlay to close
+    dom.helpModal.addEventListener('click', function (e) {
+      if (e.target === dom.helpModal) {
+        dom.helpModal.classList.add('hidden');
+      }
+    });
+  }
+
+  // ──────────────────────────────────────────────
   // 9. Generate Button & Export
   // ──────────────────────────────────────────────
   function getInputText() {
@@ -770,6 +798,9 @@
 
     // Init API key modal
     initApiKeyModal();
+
+    // Init help modal
+    initHelpModal();
 
     // Set initial mode (ensures correct panel visibility)
     setMode(state.mode);
