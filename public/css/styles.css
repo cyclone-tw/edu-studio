@@ -889,6 +889,13 @@ body {
   font-family: var(--font-mono);
 }
 
+.outline-field-secondary {
+  min-height: 50px;
+  font-size: 0.85rem;
+  opacity: 0.85;
+  background: rgba(255, 255, 255, 0.02);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .outline-card-header {

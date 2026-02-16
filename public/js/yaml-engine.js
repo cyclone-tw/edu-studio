@@ -111,10 +111,20 @@
         interaction_level: state.interactionLevel || 'medium',
         generated_at: new Date().toISOString()
       },
+      presentation_strategy: {
+        opening_hook: (jsonData.presentation_strategy && jsonData.presentation_strategy.opening_hook)
+          || jsonData.opening_hook || '',
+        core_message: (jsonData.presentation_strategy && jsonData.presentation_strategy.core_message)
+          || jsonData.core_message || '',
+        audience_adaptation: (jsonData.presentation_strategy && jsonData.presentation_strategy.audience_adaptation)
+          || jsonData.audience_adaptation || '',
+        closing_action: (jsonData.presentation_strategy && jsonData.presentation_strategy.closing_action)
+          || jsonData.closing_action || ''
+      },
       slides: [],
       appendix: {
-        references: [],
-        additional_resources: []
+        references: jsonData.references || [],
+        additional_resources: jsonData.additional_resources || jsonData.additionalResources || []
       }
     };
 
@@ -128,6 +138,7 @@
         title: s.title || '',
         content: s.content || '',
         visual_direction: s.visual_direction || s.visualDirection || '',
+        interaction: s.interaction || '',
         speaker_notes: s.speaker_notes || s.speakerNotes || ''
       });
     }

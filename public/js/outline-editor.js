@@ -137,6 +137,23 @@
     body.appendChild(titleLabel);
     body.appendChild(titleInput);
 
+    // Subtitle (if present)
+    if (slide.subtitle) {
+      var subtitleLabel = document.createElement('label');
+      subtitleLabel.className = 'outline-field-label';
+      subtitleLabel.textContent = '副標題';
+
+      var subtitleInput = document.createElement('input');
+      subtitleInput.type = 'text';
+      subtitleInput.className = 'outline-field-input';
+      subtitleInput.value = slide.subtitle || '';
+      subtitleInput.dataset.field = 'subtitle';
+      subtitleInput.dataset.index = index;
+
+      body.appendChild(subtitleLabel);
+      body.appendChild(subtitleInput);
+    }
+
     // Key points or content (depending on mode)
     if (slide.key_points && Array.isArray(slide.key_points)) {
       // AI mode: key_points
@@ -168,6 +185,57 @@
 
       body.appendChild(contentLabel);
       body.appendChild(contentTextarea);
+    }
+
+    // Visual direction (if present)
+    if (slide.visual_direction) {
+      var vdLabel = document.createElement('label');
+      vdLabel.className = 'outline-field-label';
+      vdLabel.textContent = '視覺指示';
+
+      var vdTextarea = document.createElement('textarea');
+      vdTextarea.className = 'outline-field-textarea outline-field-secondary';
+      vdTextarea.rows = 2;
+      vdTextarea.value = slide.visual_direction || '';
+      vdTextarea.dataset.field = 'visual_direction';
+      vdTextarea.dataset.index = index;
+
+      body.appendChild(vdLabel);
+      body.appendChild(vdTextarea);
+    }
+
+    // Interaction (if present)
+    if (slide.interaction) {
+      var intLabel = document.createElement('label');
+      intLabel.className = 'outline-field-label';
+      intLabel.textContent = '互動設計';
+
+      var intTextarea = document.createElement('textarea');
+      intTextarea.className = 'outline-field-textarea outline-field-secondary';
+      intTextarea.rows = 2;
+      intTextarea.value = slide.interaction || '';
+      intTextarea.dataset.field = 'interaction';
+      intTextarea.dataset.index = index;
+
+      body.appendChild(intLabel);
+      body.appendChild(intTextarea);
+    }
+
+    // Speaker notes (if present)
+    if (slide.speaker_notes) {
+      var snLabel = document.createElement('label');
+      snLabel.className = 'outline-field-label';
+      snLabel.textContent = '講稿';
+
+      var snTextarea = document.createElement('textarea');
+      snTextarea.className = 'outline-field-textarea outline-field-secondary';
+      snTextarea.rows = 3;
+      snTextarea.value = slide.speaker_notes || '';
+      snTextarea.dataset.field = 'speaker_notes';
+      snTextarea.dataset.index = index;
+
+      body.appendChild(snLabel);
+      body.appendChild(snTextarea);
     }
 
     card.appendChild(body);
