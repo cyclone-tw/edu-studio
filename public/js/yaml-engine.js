@@ -162,6 +162,140 @@
   }
 
   // ──────────────────────────────────────────────
+  // NotebookLM Style Mapping
+  // ──────────────────────────────────────────────
+  var NBLM_STYLE_MAP = {
+    warm_pro:       { style_name: 'warm_professional', visual_keywords: '溫暖色調、專業排版、柔和漸層背景', title_font: 'Noto Sans TC', body_font: 'Noto Sans TC' },
+    minimal_tech:   { style_name: 'minimal_tech', visual_keywords: '極簡設計、科技感、冷色調、幾何線條', title_font: 'Source Sans Pro', body_font: 'Noto Sans TC' },
+    retro_collage:  { style_name: 'retro_collage', visual_keywords: '復古拼貼、舊報紙質感、懷舊色調', title_font: 'Playfair Display', body_font: 'Noto Serif TC' },
+    hand_drawn:     { style_name: 'hand_drawn', visual_keywords: '手繪蠟筆質感、溫馨插圖、塗鴉風格', title_font: 'Caveat', body_font: 'Comic Sans MS' },
+    q_cute:         { style_name: 'cute_cartoon', visual_keywords: 'Q版可愛、圓角元素、粉嫩配色、卡通插圖', title_font: 'Comic Sans MS', body_font: 'Noto Sans TC' },
+    watercolor:     { style_name: 'watercolor', visual_keywords: '手繪水彩暈染、柔和色彩、藝術質感', title_font: 'Dancing Script', body_font: 'Noto Sans TC' },
+    clay_3d:        { style_name: 'clay_3d', visual_keywords: '3D黏土質感、立體圓潤、柔和陰影', title_font: 'Fredoka One', body_font: 'Noto Sans TC' },
+    edu_comic:      { style_name: 'comic_style', visual_keywords: '漫畫分格、對話框、教育漫畫風格', title_font: 'Comic Sans MS', body_font: 'Noto Sans TC' },
+    paper_cut:      { style_name: 'paper_cut', visual_keywords: '剪紙藝術、層疊紙張、鮮豔色塊', title_font: 'Noto Sans TC', body_font: 'Noto Sans TC' },
+    retro_poster:   { style_name: 'retro_poster', visual_keywords: '復古海報、大膽字型、懷舊配色', title_font: 'Anton', body_font: 'Noto Sans TC' },
+    infographic:    { style_name: 'infographic', visual_keywords: '資訊圖表、數據視覺化、圖標豐富', title_font: 'Source Sans Pro', body_font: 'Noto Sans TC' },
+    magazine:       { style_name: 'magazine', visual_keywords: '雜誌排版、精美圖文混排、時尚感', title_font: 'Playfair Display', body_font: 'Noto Sans TC' },
+    neon_dark:      { style_name: 'neon_dark', visual_keywords: '霓虹燈光、暗黑背景、發光效果', title_font: 'Orbitron', body_font: 'Noto Sans TC' },
+    nature_organic: { style_name: 'nature_organic', visual_keywords: '自然有機、植物紋理、大地色系', title_font: 'Lora', body_font: 'Noto Sans TC' },
+    blueprint:      { style_name: 'blueprint', visual_keywords: '藍圖工程、網格線條、技術製圖風格', title_font: 'Source Code Pro', body_font: 'Noto Sans TC' }
+  };
+
+  // ──────────────────────────────────────────────
+  // buildNotebookLMYaml — NotebookLM-compatible format
+  // ──────────────────────────────────────────────
+  function buildNotebookLMYaml(doc, state) {
+    if (!doc) throw new Error('No document data provided');
+
+    // Resolve style mapping
+    var styleId = state.visualStyle || 'hand_drawn';
+    var styleInfo = NBLM_STYLE_MAP[styleId] || NBLM_STYLE_MAP.hand_drawn;
+
+    var labels = resolvePresetLabels(state);
+
+    // Build title for filename
+    var title = '';
+    if (doc.metadata && doc.metadata.title) {
+      title = doc.metadata.title;
+    } else if (doc.slides && doc.slides[0]) {
+      title = doc.slides[0].title || 'presentation';
+    }
+    var safeTitle = title.replace(/[<>:"/\\|?*\s]/g, '_').substring(0, 30);
+
+    // Build system_instructions
+    var sysInstructions = '你是一位專業的簡報設計AI。請嚴格按照以下YAML中的指示生成簡報。\n';
+    sysInstructions += '每一頁的視覺描述(visual_description)是你繪製背景與插圖的依據。\n';
+    sysInstructions += '每一頁的key_points是你放置文字內容的依據，必須完整呈現，不可刪減或摘要。\n';
+    sysInstructions += '講者角色：' + labels.presenterRole + '\n';
+    sysInstructions += '目標受眾：' + labels.audience + '\n';
+    sysInstructions += '簡報場景：' + labels.context + '\n';
+    sysInstructions += '視覺風格：' + labels.visualStyle;
+
+    // Build slides in NotebookLM format
+    var slides = doc.slides || [];
+    var nblmSlides = [];
+
+    for (var i = 0; i < slides.length; i++) {
+      var s = slides[i];
+
+      // Determine page type
+      var pageType = 'content_page';
+      if (s.type === 'title' || s.type === 'cover' || i === 0) {
+        pageType = 'cover_page';
+      } else if (s.type === 'closing' || s.type === 'end' || i === slides.length - 1) {
+        pageType = 'closing_page';
+      } else if (s.type === 'section' || s.type === 'divider') {
+        pageType = 'section_divider';
+      }
+
+      // Build key_points
+      var keyPoints = [];
+      if (s.key_points && Array.isArray(s.key_points) && s.key_points.length > 0) {
+        keyPoints = s.key_points;
+      } else if (s.content && typeof s.content === 'string') {
+        // Split content into sentences
+        keyPoints = s.content.split(/(?<=[。！？\n])/).filter(function (seg) {
+          return seg.trim().length > 0;
+        }).map(function (seg) {
+          return seg.trim();
+        });
+      }
+
+      // Build visual_description from visual_direction
+      var visualDesc = s.visual_direction || s.visualDirection || '';
+      if (!visualDesc) {
+        visualDesc = styleInfo.visual_keywords + '風格背景';
+      }
+
+      var slideObj = {
+        type: pageType,
+        layout_style: i === 0 ? 'Centered' : 'Title Top-Left',
+        visual_description: visualDesc,
+        content: {
+          title: s.title || '',
+          key_points: keyPoints
+        }
+      };
+
+      // Add subtitle if present
+      if (s.subtitle) {
+        slideObj.content.subtitle = s.subtitle;
+      }
+
+      // Add speaker_notes if present
+      if (s.speaker_notes) {
+        slideObj.speaker_notes = s.speaker_notes;
+      }
+
+      nblmSlides.push(slideObj);
+    }
+
+    // Build the NotebookLM-compatible structure
+    var nblmDoc = {
+      presentation_data: {
+        suggested_filename: safeTitle,
+        system_instructions: sysInstructions,
+        global_design: {
+          style_name: styleInfo.style_name,
+          visual_keywords: styleInfo.visual_keywords,
+          target_audience: labels.audience,
+          total_pages: slides.length,
+          typography: {
+            title_font: styleInfo.title_font,
+            body_font: styleInfo.body_font,
+            title_size: '28pt',
+            body_size: '16pt'
+          }
+        },
+        slides: nblmSlides
+      }
+    };
+
+    return jsyaml.dump(nblmDoc, YAML_OPTIONS);
+  }
+
+  // ──────────────────────────────────────────────
   // downloadFile — Browser file download utility
   // ──────────────────────────────────────────────
   function downloadFile(content, filename, mimeType) {
@@ -182,6 +316,7 @@
   // ──────────────────────────────────────────────
   window.buildYaml = buildYaml;
   window.buildTextbookYaml = buildTextbookYaml;
+  window.buildNotebookLMYaml = buildNotebookLMYaml;
   window.downloadFile = downloadFile;
 
 })();

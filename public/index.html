@@ -287,12 +287,12 @@
         <div class="yaml-preview-pane">
           <div class="editor-pane-header">
             <span>📄 YAML 預覽</span>
-            <button class="btn btn-sm btn-copy" id="btnCopyYaml" type="button" title="複製 YAML">
+            <button class="btn btn-sm btn-copy" id="btnCopyYaml" type="button" title="複製 NotebookLM 格式 YAML">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
               </svg>
-              複製 YAML
+              複製 NBLM YAML
             </button>
           </div>
           <textarea class="form-textarea yaml-preview-textarea" id="yamlPreview"
@@ -307,22 +307,22 @@
           <div class="notebooklm-step">
             <div class="notebooklm-step-number">1</div>
             <div class="notebooklm-step-content">
-              <strong>下載 TXT 檔案</strong>
-              <p>點擊下方「下載 TXT」按鈕，取得格式化的 YAML 內容</p>
+              <strong>複製 NBLM YAML</strong>
+              <p>點擊右上角「複製 NBLM YAML」按鈕，自動轉換為 NotebookLM 專用格式</p>
             </div>
           </div>
           <div class="notebooklm-step">
             <div class="notebooklm-step-number">2</div>
             <div class="notebooklm-step-content">
-              <strong>上傳到 NotebookLM</strong>
-              <p>前往 <a href="https://notebooklm.google.com" target="_blank" rel="noopener">NotebookLM</a>，建立新筆記本並上傳 TXT 檔</p>
+              <strong>貼入 NotebookLM</strong>
+              <p>前往 <a href="https://notebooklm.google.com" target="_blank" rel="noopener">NotebookLM</a>，建立新筆記本，選擇「複製的文字」來源並貼上</p>
             </div>
           </div>
           <div class="notebooklm-step">
             <div class="notebooklm-step-number">3</div>
             <div class="notebooklm-step-content">
               <strong>生成簡報</strong>
-              <p>在筆記本中點擊「生成簡報」，NotebookLM 會自動根據內容製作投影片</p>
+              <p>在筆記本中點擊「生成簡報」，NotebookLM 會依照 YAML 指示製作投影片</p>
             </div>
           </div>
         </div>

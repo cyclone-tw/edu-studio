@@ -648,19 +648,32 @@
       return;
     }
 
+    // Convert to NotebookLM-compatible format for clipboard
+    var copyContent = yamlContent;
+    if (typeof window.buildNotebookLMYaml === 'function') {
+      try {
+        var doc = jsyaml.load(yamlContent);
+        if (doc && doc.slides) {
+          copyContent = window.buildNotebookLMYaml(doc, state);
+        }
+      } catch (err) {
+        console.warn('[Copy] NotebookLM format conversion failed, using original:', err);
+      }
+    }
+
     // Try Clipboard API first (modern browsers)
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(yamlContent)
+      navigator.clipboard.writeText(copyContent)
         .then(function () {
-          showToast('YAML 已複製到剪貼簿', 'success');
+          showToast('NotebookLM 格式 YAML 已複製到剪貼簿', 'success');
         })
         .catch(function (err) {
           console.error('Clipboard API failed:', err);
-          fallbackCopy(yamlContent);
+          fallbackCopy(copyContent);
         });
     } else {
       // Fallback for older browsers
-      fallbackCopy(yamlContent);
+      fallbackCopy(copyContent);
     }
   }
 
