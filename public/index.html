@@ -36,6 +36,14 @@
       </svg>
       <span>API Key</span>
     </button>
+    <button class="btn btn-secondary" id="btnOpenHelp" type="button">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      使用說明
+    </button>
   </header>
 
   <!-- ============================== -->
@@ -376,6 +384,90 @@
   <footer class="app-footer">
     <p>&copy; 2026 Cyclone. All rights reserved.</p>
   </footer>
+
+  <!-- ============================== -->
+  <!-- 使用說明彈窗                     -->
+  <!-- ============================== -->
+  <div class="modal hidden" id="helpModal">
+    <div class="modal-content help-modal-content">
+      <div class="modal-header">
+        <h2>📖 使用說明</h2>
+        <button class="btn-close" id="btnCloseHelp" type="button">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- 四步驟流程圖 -->
+        <section class="help-section">
+          <h3>🎯 使用流程</h3>
+          <div class="help-steps">
+            <div class="help-step">
+              <div class="help-step-icon">📤</div>
+              <div class="help-step-title">1. 上傳素材</div>
+            </div>
+            <div class="help-step-arrow">→</div>
+            <div class="help-step">
+              <div class="help-step-icon">⚗️</div>
+              <div class="help-step-title">2. 生成結構</div>
+            </div>
+            <div class="help-step-arrow">→</div>
+            <div class="help-step">
+              <div class="help-step-icon">📗</div>
+              <div class="help-step-title">3. 匯入 NBLM</div>
+            </div>
+            <div class="help-step-arrow">→</div>
+            <div class="help-step">
+              <div class="help-step-icon">📊</div>
+              <div class="help-step-title">4. 生成簡報</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- API Key 設定說明 -->
+        <section class="help-section">
+          <h3>🔑 設定 API Key</h3>
+          <p>首先需要設定 Google Gemini API Key 才能啟用 AI 大腦。</p>
+          <ol>
+            <li>點擊右上角「🔑 AI 設定」按鈕</li>
+            <li>前往 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio 申請 API Key</a>（免費版即可）</li>
+            <li>複製 API Key 並貼上到輸入框</li>
+            <li>點擊「儲存」</li>
+          </ol>
+        </section>
+
+        <!-- 三種模式說明 -->
+        <section class="help-section">
+          <h3>🎨 三種生成模式</h3>
+          <div class="help-mode">
+            <h4>✨ AI 智慧生成</h4>
+            <p><strong>AI 自動生成：</strong>AI 會分析你的素材，自動設計簡報架構和重點。</p>
+            <p><strong>現有大綱轉檔：</strong>保留你的大綱結構，只做格式轉換，文字內容一字不改。</p>
+          </div>
+          <div class="help-mode">
+            <h4>📚 課文忠實模式</h4>
+            <p>將課文原文完整呈現，一字不改、一字不漏，AI 只負責合理分頁。</p>
+          </div>
+          <div class="help-mode">
+            <h4>📄 PDF 轉圖片</h4>
+            <p>將 PDF 的每一頁轉換為高品質 PNG 圖片，方便插入簡報使用。</p>
+          </div>
+        </section>
+
+        <!-- NotebookLM 使用說明 -->
+        <section class="help-section">
+          <h3>📗 如何使用 NotebookLM 製作簡報？</h3>
+          <ol>
+            <li>完成前三步驟後，點擊「下載 TXT」下載 YAML 施工圖</li>
+            <li>前往 <a href="https://notebooklm.google.com" target="_blank" rel="noopener">Google NotebookLM</a> 並建立新筆記本</li>
+            <li>將剛下載的 .txt 檔案上傳作為來源 (Source)</li>
+            <li>在 NotebookLM 中，指示 AI：「請根據這份 YAML 結構檔案，為我生成完整的簡報內容」</li>
+            <li>NotebookLM 會自動分析並生成簡報內容</li>
+          </ol>
+        </section>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnHelpOk" type="button">我知道了</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ============================== -->
   <!-- Scripts (order matters)        -->
