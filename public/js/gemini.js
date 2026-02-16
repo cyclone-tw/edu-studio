@@ -221,65 +221,82 @@
       throw new Error('請先設定 Gemini API Key');
     }
 
-    var prompt = '你是一位簡報分段專家。\n\n'
+    var role = lookupItem('presenterRoles', state.presenterRole);
+    var audience = lookupItem('audienceProfiles', state.audience);
+    var context = lookupItem('contexts', state.context);
+    var style = lookupItem('visualStyles', state.visualStyle);
+
+    var roleLabel = role ? role.label : state.presenterRole;
+    var roleTone = role ? role.tone : '';
+    var audienceLabel = audience ? audience.label : state.audience;
+    var audienceTraits = audience ? audience.traits : '';
+    var contextLabel = context ? context.label : state.context;
+    var styleLabel = style ? style.label : state.visualStyle;
+
+    var interactionDesc = {
+      low: '低互動：以講述為主，僅在關鍵處設置簡單提問',
+      medium: '中互動：每 3-4 頁穿插互動環節（提問、小活動）',
+      high: '高互動：頻繁互動，每 1-2 頁都有參與環節'
+    };
+
+    var prompt = '你是一位簡報分段專家，擅長將課文轉換為教學簡報。\n\n'
       + '⚠️ 【最重要的規則】你必須將課文分配到恰好 ' + state.slideCount + ' 頁投影片中，不多不少。slides 陣列長度必須是 ' + state.slideCount + '。\n\n'
-      + '嚴格規則：\n'
-      + '1. ⚠️ 投影片數量：必須恰好 ' + state.slideCount + ' 頁（這是硬性要求，第 1 頁為標題頁，其餘為內容頁）\n'
-      + '2. 課文原文「一字不改」「一字不漏」\n'
-      + '3. 將所有文字完整分配，不可遺漏任何字\n'
+      + '## 簡報設定\n\n'
+      + '### 簡報者角色\n'
+      + '- 角色：' + roleLabel + '\n'
+      + '- 語調風格：' + roleTone + '\n\n'
+      + '### 受眾分析\n'
+      + '- 受眾：' + audienceLabel + '\n'
+      + '- 受眾特質：' + audienceTraits + '\n\n'
+      + '### 簡報場景\n'
+      + '- 場景：' + contextLabel + '\n\n'
+      + '### 視覺風格\n'
+      + '- 風格：' + styleLabel + '\n\n'
+      + '### 互動程度\n'
+      + '- ' + (interactionDesc[state.interactionLevel] || state.interactionLevel) + '\n\n'
+      + '## 嚴格規則\n\n'
+      + '1. ⚠️ 投影片數量：必須恰好 ' + state.slideCount + ' 頁（第 1 頁為標題頁，其餘為內容頁）\n'
+      + '2. content 欄位中的課文原文「一字不改」「一字不漏」\n'
+      + '3. 將所有文字完整分配到 content 中，不可遺漏任何字\n'
       + '4. 根據段落、語意斷點合理分配\n'
-      + '5. 每頁的文字量盡量均勻\n\n'
-      + '輸出 JSON 格式：\n'
+      + '5. 每頁的文字量盡量均勻\n'
+      + '6. 每頁必須根據上方的「視覺風格」和「受眾」生成具體的 visual_direction（視覺設計指示）\n'
+      + '7. 每頁必須根據上方的「簡報者角色」語調生成 speaker_notes（完整講稿，可直接當老師上課用的講稿）\n'
+      + '8. 根據互動程度適當加入 interaction 互動設計\n\n'
+      + '## 輸出 JSON 格式\n\n'
       + '{\n'
       + '  "title": "根據課文內容產生的標題",\n'
+      + '  "presentation_strategy": {\n'
+      + '    "opening_hook": "開場吸引策略",\n'
+      + '    "core_message": "核心訊息",\n'
+      + '    "audience_adaptation": "受眾適應策略",\n'
+      + '    "closing_action": "結尾行動呼籲"\n'
+      + '  },\n'
       + '  "slides": [\n'
       + '    {\n'
       + '      "slide_number": 1,\n'
       + '      "type": "title",\n'
       + '      "title": "標題頁文字",\n'
-      + '      "content": ""\n'
+      + '      "content": "",\n'
+      + '      "visual_direction": "具體的視覺設計指示（符合所選風格）",\n'
+      + '      "interaction": "互動設計（若有）",\n'
+      + '      "speaker_notes": "完整講稿（符合所選角色語調）"\n'
       + '    },\n'
       + '    {\n'
       + '      "slide_number": 2,\n'
       + '      "type": "content",\n'
       + '      "title": "此頁小標題",\n'
-      + '      "content": "此頁的課文原文（一字不改）"\n'
+      + '      "content": "此頁的課文原文（一字不改）",\n'
+      + '      "visual_direction": "具體的視覺設計指示",\n'
+      + '      "interaction": "互動設計（若有）",\n'
+      + '      "speaker_notes": "完整講稿"\n'
       + '    }\n'
       + '  ]\n'
       + '}\n\n'
-      + '課文內容：\n' + text + '\n\n'
-      + '請將以上課文分配到恰好 ' + state.slideCount + ' 頁投影片中。';
+      + '## 課文內容\n\n' + text + '\n\n'
+      + '⚠️ 再次提醒：slides 陣列必須恰好包含 ' + state.slideCount + ' 個元素。每頁都必須有具體的 visual_direction 和 speaker_notes。';
 
-    var result = await callGemini(state.apiKey, prompt);
-
-    // Wrap the result to include metadata and strategy for consistency with AI mode
-    var roleLabel = lookupLabel('presenterRoles', state.presenterRole);
-    var audienceLabel = lookupLabel('audienceProfiles', state.audience);
-    var contextLabel = lookupLabel('contexts', state.context);
-    var styleLabel = lookupLabel('visualStyles', state.visualStyle);
-
-    if (!result.presentation_strategy) {
-      result.presentation_strategy = {
-        opening_hook: '直接呈現課文內容',
-        core_message: result.title || '課文重點整理',
-        audience_adaptation: '忠實呈現原文，保持課文完整性',
-        closing_action: '複習課文重點'
-      };
-    }
-
-    if (!result.metadata) {
-      result.metadata = {
-        mode: 'textbook',
-        presenterRole: roleLabel,
-        audience: audienceLabel,
-        context: contextLabel,
-        visualStyle: styleLabel,
-        slideCount: state.slideCount,
-        language: state.language
-      };
-    }
-
-    return result;
+    return await callGemini(state.apiKey, prompt);
   }
 
   // ──────────────────────────────────────────────
@@ -293,57 +310,54 @@
       throw new Error('請先設定 Gemini API Key');
     }
 
+    var role = lookupItem('presenterRoles', state.presenterRole);
+    var audience = lookupItem('audienceProfiles', state.audience);
+    var context = lookupItem('contexts', state.context);
+    var style = lookupItem('visualStyles', state.visualStyle);
+
+    var roleLabel = role ? role.label : state.presenterRole;
+    var roleTone = role ? role.tone : '';
+    var audienceLabel = audience ? audience.label : state.audience;
+    var audienceTraits = audience ? audience.traits : '';
+    var contextLabel = context ? context.label : state.context;
+    var styleLabel = style ? style.label : state.visualStyle;
+
     var prompt = '你是一位簡報格式轉換專家。請將使用者提供的簡報大綱轉換為結構化 JSON 格式。\n\n'
-      + '嚴格規則：\n'
+      + '## 簡報設定\n\n'
+      + '- 簡報者角色：' + roleLabel + '（語調：' + roleTone + '）\n'
+      + '- 受眾：' + audienceLabel + '（' + audienceTraits + '）\n'
+      + '- 場景：' + contextLabel + '\n'
+      + '- 視覺風格：' + styleLabel + '\n\n'
+      + '## 嚴格規則\n\n'
       + '1. 大綱中的「標題」和「內容文字」必須「一字不改」「一字不漏」\n'
-      + '2. 只需要將大綱轉換為 JSON 結構，不要新增任何額外內容\n'
-      + '3. 保持使用者原始的分頁和段落結構\n'
-      + '4. 如果使用者沒有明確標示頁數，請根據內容合理分頁\n\n'
-      + '輸出 JSON 格式：\n'
+      + '2. 保持使用者原始的分頁和段落結構\n'
+      + '3. 如果使用者沒有明確標示頁數，請根據內容合理分頁\n'
+      + '4. 每頁必須根據上方的「視覺風格」生成具體的 visual_direction\n'
+      + '5. 每頁必須根據「簡報者角色」語調生成 speaker_notes（完整講稿）\n\n'
+      + '## 輸出 JSON 格式\n\n'
       + '{\n'
       + '  "title": "根據大綱內容產生的標題",\n'
+      + '  "presentation_strategy": {\n'
+      + '    "opening_hook": "開場策略",\n'
+      + '    "core_message": "核心訊息",\n'
+      + '    "audience_adaptation": "受眾適應策略",\n'
+      + '    "closing_action": "結尾行動"\n'
+      + '  },\n'
       + '  "slides": [\n'
       + '    {\n'
       + '      "slide_number": 1,\n'
       + '      "type": "title|content",\n'
       + '      "title": "此頁標題（從大綱提取，一字不改）",\n'
       + '      "key_points": ["要點1", "要點2"],\n'
-      + '      "speaker_notes": "講稿內容（如有提供）"\n'
+      + '      "visual_direction": "具體的視覺設計指示（符合所選風格）",\n'
+      + '      "interaction": "互動設計（若有）",\n'
+      + '      "speaker_notes": "完整講稿（符合所選角色語調）"\n'
       + '    }\n'
       + '  ]\n'
       + '}\n\n'
       + '使用者提供的大綱：\n' + text;
 
-    var result = await callGemini(state.apiKey, prompt);
-
-    // Wrap the result to include metadata and strategy for consistency
-    var roleLabel = lookupLabel('presenterRoles', state.presenterRole);
-    var audienceLabel = lookupLabel('audienceProfiles', state.audience);
-    var contextLabel = lookupLabel('contexts', state.context);
-    var styleLabel = lookupLabel('visualStyles', state.visualStyle);
-
-    if (!result.presentation_strategy) {
-      result.presentation_strategy = {
-        opening_hook: '依據使用者大綱呈現',
-        core_message: result.title || '簡報大綱',
-        audience_adaptation: '保持使用者原始大綱結構和文字',
-        closing_action: '依據大綱內容總結'
-      };
-    }
-
-    if (!result.metadata) {
-      result.metadata = {
-        mode: 'outline',
-        presenterRole: roleLabel,
-        audience: audienceLabel,
-        context: contextLabel,
-        visualStyle: styleLabel,
-        slideCount: state.slideCount,
-        language: state.language
-      };
-    }
-
-    return result;
+    return await callGemini(state.apiKey, prompt);
   }
 
   // ──────────────────────────────────────────────
