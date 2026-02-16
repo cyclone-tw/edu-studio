@@ -270,9 +270,14 @@
     // Update outlineData
     if (field === 'key_points') {
       // Split by newline, filter empty lines
-      outlineData[index].key_points = value.split('\n').filter(function (line) {
+      var points = value.split('\n').filter(function (line) {
         return line.trim().length > 0;
       });
+      outlineData[index].key_points = points;
+      // Also sync to content field (for textbook mode compatibility)
+      if (outlineData[index].content !== undefined) {
+        outlineData[index].content = points.join('');
+      }
     } else {
       outlineData[index][field] = value;
     }

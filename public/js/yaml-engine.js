@@ -128,15 +128,30 @@
       }
     };
 
-    // Map slides — textbook mode uses content (verbatim text) instead of key_points
+    // Map slides — textbook mode: put verbatim text in both content and key_points
+    // NotebookLM reads key_points for slide text, so we need original text there
     var rawSlides = jsonData.slides || [];
     for (var i = 0; i < rawSlides.length; i++) {
       var s = rawSlides[i];
+      var contentText = s.content || '';
+
+      // Split content into sentences for key_points (NotebookLM uses this for display)
+      var keyPoints = s.key_points || s.keyPoints || [];
+      if (keyPoints.length === 0 && contentText) {
+        // Split by Chinese sentence endings (。！？) preserving the punctuation
+        keyPoints = contentText.split(/(?<=[。！？\n])/).filter(function (seg) {
+          return seg.trim().length > 0;
+        }).map(function (seg) {
+          return seg.trim();
+        });
+      }
+
       doc.slides.push({
         slide_number: s.slide_number || s.slideNumber || (i + 1),
         type: s.type || 'content',
         title: s.title || '',
-        content: s.content || '',
+        key_points: keyPoints,
+        content: contentText,
         visual_direction: s.visual_direction || s.visualDirection || '',
         interaction: s.interaction || '',
         speaker_notes: s.speaker_notes || s.speakerNotes || ''
