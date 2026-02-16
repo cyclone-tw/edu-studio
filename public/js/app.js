@@ -9,7 +9,7 @@
   // 1. State Management
   // ──────────────────────────────────────────────
   const state = {
-    mode: 'ai',                // 'ai' | 'textbook' | 'pdf'
+    mode: 'ai',                // 'ai' | 'textbook'
     aiInputMode: 'smart',      // 'smart' | 'outline' (for AI mode)
     step: 1,
     presenterRole: null,
@@ -36,7 +36,6 @@
     modeTabs:          $('#modeTabs'),
     stepProgress:      $('#stepProgress'),
     stepPanels:        [null, $('#step1Panel'), $('#step2Panel'), $('#step3Panel'), $('#step4Panel')],
-    pdfPanel:          $('#pdfPanel'),
     roleCards:         $('#roleCards'),
     audienceCardsEdu:  $('#audienceCardsEdu'),
     audienceCardsWork: $('#audienceCardsWork'),
@@ -178,30 +177,20 @@
       tab.classList.toggle('active', tab.getAttribute('data-mode') === mode);
     });
 
-    if (mode === 'pdf') {
-      // PDF mode: hide step progress and step panels, show PDF panel
-      dom.stepProgress.classList.add('hidden');
-      for (var i = 1; i <= 4; i++) {
-        if (dom.stepPanels[i]) dom.stepPanels[i].classList.add('hidden');
-      }
-      dom.pdfPanel.classList.remove('hidden');
-    } else {
-      // AI or textbook mode
-      dom.stepProgress.classList.remove('hidden');
-      dom.pdfPanel.classList.add('hidden');
+    // AI or textbook mode
+    dom.stepProgress.classList.remove('hidden');
 
-      // Toggle input areas in step 3
-      if (mode === 'ai') {
-        dom.aiInputArea.classList.remove('hidden');
-        dom.textbookInputArea.classList.add('hidden');
-      } else {
-        dom.aiInputArea.classList.add('hidden');
-        dom.textbookInputArea.classList.remove('hidden');
-      }
-
-      // Go to current step (re-render step panels visibility)
-      goToStep(state.step);
+    // Toggle input areas in step 3
+    if (mode === 'ai') {
+      dom.aiInputArea.classList.remove('hidden');
+      dom.textbookInputArea.classList.add('hidden');
+    } else if (mode === 'textbook') {
+      dom.aiInputArea.classList.add('hidden');
+      dom.textbookInputArea.classList.remove('hidden');
     }
+
+    // Go to current step (re-render step panels visibility)
+    goToStep(state.step);
   }
 
   // ──────────────────────────────────────────────
