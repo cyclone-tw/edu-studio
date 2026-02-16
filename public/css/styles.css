@@ -1130,6 +1130,89 @@ body {
 }
 
 /* ========================================
+   NotebookLM Guide
+   ======================================== */
+.notebooklm-guide {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin: 24px 0;
+}
+
+.notebooklm-guide-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.notebooklm-steps {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.notebooklm-step {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.notebooklm-step-number {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.notebooklm-step-content {
+  flex: 1;
+}
+
+.notebooklm-step-content strong {
+  display: block;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}
+
+.notebooklm-step-content p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.notebooklm-step-content a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.notebooklm-step-content a:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* 響應式 */
+@media (max-width: 1024px) {
+  .notebooklm-steps {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+/* ========================================
    Toast
    ======================================== */
 .toast-container {
