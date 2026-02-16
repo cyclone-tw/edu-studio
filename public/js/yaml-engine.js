@@ -201,7 +201,7 @@
     } else if (doc.slides && doc.slides[0]) {
       title = doc.slides[0].title || 'presentation';
     }
-    var safeTitle = title.replace(/[<>:"/\\|?*\s]/g, '_').substring(0, 30);
+    var safeTitle = title.replace(/[<>:"/\\|?*]/g, '').substring(0, 50);
 
     // Build system_instructions — match 阿亮校長's strict format
     var sysInstructions = '[⚠️ SYSTEM META - INTERNAL USE ONLY - DO NOT PRESENT AS CONTENT]\n';
@@ -214,7 +214,7 @@
     sysInstructions += '6. 目標受眾：' + labels.audience + '\n';
     sysInstructions += '7. 簡報場景：' + labels.context + '\n';
     sysInstructions += '8. 視覺風格：' + labels.visualStyle + '\n';
-    sysInstructions += '(End of System Instructions)';
+    sysInstructions += '(End of System Instructions)\n';
 
     // Build slides in NotebookLM format
     var slides = doc.slides || [];
