@@ -64,7 +64,6 @@
     step4Prev:         $('#step4Prev'),
     btnDownloadYaml:   $('#btnDownloadYaml'),
     btnDownloadMd:     $('#btnDownloadMd'),
-    yamlEditor:        $('#yamlEditor'),
     previewContent:    $('#previewContent'),
     btnOpenApiKey:     $('#btnOpenApiKey'),
     apiKeyModal:       $('#apiKeyModal'),
@@ -543,8 +542,7 @@
             yamlString = jsyaml.dump(result);
           }
 
-          // Update both yamlEditor (legacy) and yamlPreview (new)
-          if (dom.yamlEditor) dom.yamlEditor.value = yamlString;
+          // Update yamlPreview
           if (dom.yamlPreview) dom.yamlPreview.value = yamlString;
 
           // Load outline into editor
@@ -584,7 +582,7 @@
    * Format: YYYY-MM-DD-標題.ext
    */
   function generateFilename(extension) {
-    var yamlContent = dom.yamlEditor.value;
+    var yamlContent = dom.yamlPreview.value;
     var title = 'presentation';
 
     // Try to extract title from YAML content
@@ -625,7 +623,7 @@
 
   function initExportButtons() {
     dom.btnDownloadYaml.addEventListener('click', function () {
-      var content = dom.yamlPreview.value || dom.yamlEditor.value;
+      var content = dom.yamlPreview.value;
       if (!content) {
         showToast('沒有可下載的內容', 'error');
         return;
@@ -636,7 +634,7 @@
     });
 
     dom.btnDownloadMd.addEventListener('click', function () {
-      var yamlContent = dom.yamlPreview.value || dom.yamlEditor.value;
+      var yamlContent = dom.yamlPreview.value;
       if (!yamlContent) {
         showToast('沒有可下載的內容', 'error');
         return;
