@@ -514,16 +514,13 @@
           return;
         }
 
-        // Build structured YAML from JSON result
+        // Build NotebookLM-compatible YAML from JSON result
         if (result) {
           var yamlString;
           try {
-            if (state.mode === 'textbook' && typeof window.buildTextbookYaml === 'function') {
-              yamlString = window.buildTextbookYaml(result, state);
-            } else if (typeof window.buildYaml === 'function') {
+            if (typeof window.buildYaml === 'function') {
               yamlString = window.buildYaml(result, state);
             } else {
-              // Fallback: raw YAML dump
               yamlString = jsyaml.dump(result);
             }
           } catch (buildErr) {
@@ -537,13 +534,9 @@
           // Load outline into editor with full document structure
           if (typeof OutlineEditor !== 'undefined' && yamlString) {
             try {
-              // Parse YAML back to get full document structure
               var fullDoc = jsyaml.load(yamlString);
-              if (fullDoc && fullDoc.slides) {
+              if (fullDoc) {
                 OutlineEditor.loadOutline(fullDoc);
-              } else if (Array.isArray(result)) {
-                // Fallback: if no document structure, just load slides
-                OutlineEditor.loadOutline(result);
               }
             } catch (outlineErr) {
               console.warn('[OutlineEditor] Load failed:', outlineErr);
@@ -648,32 +641,17 @@
       return;
     }
 
-    // Convert to NotebookLM-compatible format for clipboard
-    var copyContent = yamlContent;
-    if (typeof window.buildNotebookLMYaml === 'function') {
-      try {
-        var doc = jsyaml.load(yamlContent);
-        if (doc && doc.slides) {
-          copyContent = window.buildNotebookLMYaml(doc, state);
-        }
-      } catch (err) {
-        console.warn('[Copy] NotebookLM format conversion failed, using original:', err);
-      }
-    }
-
-    // Try Clipboard API first (modern browsers)
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(copyContent)
+      navigator.clipboard.writeText(yamlContent)
         .then(function () {
-          showToast('NotebookLM 格式 YAML 已複製到剪貼簿', 'success');
+          showToast('YAML 已複製到剪貼簿', 'success');
         })
         .catch(function (err) {
           console.error('Clipboard API failed:', err);
-          fallbackCopy(copyContent);
+          fallbackCopy(yamlContent);
         });
     } else {
-      // Fallback for older browsers
-      fallbackCopy(copyContent);
+      fallbackCopy(yamlContent);
     }
   }
 

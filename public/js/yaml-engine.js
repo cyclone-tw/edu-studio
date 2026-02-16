@@ -1,7 +1,7 @@
 /* ============================================================
    NBLM 簡報生成助手 — YAML Engine (yaml-engine.js)
    ============================================================
-   Transforms Gemini JSON responses into structured YAML strings.
+   Transforms Gemini JSON into NotebookLM-compatible YAML.
    Dependencies: js-yaml (global `jsyaml`)
    ============================================================ */
 
@@ -36,132 +36,6 @@
   }
 
   // ──────────────────────────────────────────────
-  // buildYaml — AI mode
-  // ──────────────────────────────────────────────
-  function buildYaml(jsonData, state) {
-    if (!jsonData) throw new Error('No JSON data provided');
-
-    var labels = resolvePresetLabels(state);
-
-    var doc = {
-      metadata: {
-        title: jsonData.title || '',
-        presenter_role: labels.presenterRole,
-        audience: labels.audience,
-        context: labels.context,
-        visual_style: labels.visualStyle,
-        slide_count: state.slideCount || 12,
-        language: state.language || 'zh-TW',
-        interaction_level: state.interactionLevel || 'medium',
-        generated_at: new Date().toISOString()
-      },
-      presentation_strategy: {
-        opening_hook: (jsonData.presentation_strategy && jsonData.presentation_strategy.opening_hook)
-          || jsonData.opening_hook || jsonData.openingHook || '',
-        core_message: (jsonData.presentation_strategy && jsonData.presentation_strategy.core_message)
-          || jsonData.core_message || jsonData.coreMessage || '',
-        audience_adaptation: (jsonData.presentation_strategy && jsonData.presentation_strategy.audience_adaptation)
-          || jsonData.audience_adaptation || jsonData.audienceAdaptation || '',
-        closing_action: (jsonData.presentation_strategy && jsonData.presentation_strategy.closing_action)
-          || jsonData.closing_action || jsonData.closingAction || ''
-      },
-      slides: [],
-      appendix: {
-        references: jsonData.references || [],
-        additional_resources: jsonData.additional_resources || jsonData.additionalResources || []
-      }
-    };
-
-    // Map slides
-    var rawSlides = jsonData.slides || [];
-    for (var i = 0; i < rawSlides.length; i++) {
-      var s = rawSlides[i];
-      doc.slides.push({
-        slide_number: s.slide_number || s.slideNumber || (i + 1),
-        type: s.type || 'content',
-        title: s.title || '',
-        subtitle: s.subtitle || '',
-        key_points: s.key_points || s.keyPoints || s.content || [],
-        visual_direction: s.visual_direction || s.visualDirection || '',
-        interaction: s.interaction || '',
-        speaker_notes: s.speaker_notes || s.speakerNotes || ''
-      });
-    }
-
-    return '# NBLM Presentation Blueprint\n' + jsyaml.dump(doc, YAML_OPTIONS);
-  }
-
-  // ──────────────────────────────────────────────
-  // buildTextbookYaml — Textbook mode
-  // ──────────────────────────────────────────────
-  function buildTextbookYaml(jsonData, state) {
-    if (!jsonData) throw new Error('No JSON data provided');
-
-    var labels = resolvePresetLabels(state);
-
-    var doc = {
-      metadata: {
-        title: jsonData.title || '',
-        presenter_role: labels.presenterRole,
-        audience: labels.audience,
-        context: labels.context,
-        visual_style: labels.visualStyle,
-        slide_count: state.slideCount || 12,
-        language: state.language || 'zh-TW',
-        interaction_level: state.interactionLevel || 'medium',
-        generated_at: new Date().toISOString()
-      },
-      presentation_strategy: {
-        opening_hook: (jsonData.presentation_strategy && jsonData.presentation_strategy.opening_hook)
-          || jsonData.opening_hook || '',
-        core_message: (jsonData.presentation_strategy && jsonData.presentation_strategy.core_message)
-          || jsonData.core_message || '',
-        audience_adaptation: (jsonData.presentation_strategy && jsonData.presentation_strategy.audience_adaptation)
-          || jsonData.audience_adaptation || '',
-        closing_action: (jsonData.presentation_strategy && jsonData.presentation_strategy.closing_action)
-          || jsonData.closing_action || ''
-      },
-      slides: [],
-      appendix: {
-        references: jsonData.references || [],
-        additional_resources: jsonData.additional_resources || jsonData.additionalResources || []
-      }
-    };
-
-    // Map slides — textbook mode: put verbatim text in both content and key_points
-    // NotebookLM reads key_points for slide text, so we need original text there
-    var rawSlides = jsonData.slides || [];
-    for (var i = 0; i < rawSlides.length; i++) {
-      var s = rawSlides[i];
-      var contentText = s.content || '';
-
-      // Split content into sentences for key_points (NotebookLM uses this for display)
-      var keyPoints = s.key_points || s.keyPoints || [];
-      if (keyPoints.length === 0 && contentText) {
-        // Split by Chinese sentence endings (。！？) preserving the punctuation
-        keyPoints = contentText.split(/(?<=[。！？\n])/).filter(function (seg) {
-          return seg.trim().length > 0;
-        }).map(function (seg) {
-          return seg.trim();
-        });
-      }
-
-      doc.slides.push({
-        slide_number: s.slide_number || s.slideNumber || (i + 1),
-        type: s.type || 'content',
-        title: s.title || '',
-        key_points: keyPoints,
-        content: contentText,
-        visual_direction: s.visual_direction || s.visualDirection || '',
-        interaction: s.interaction || '',
-        speaker_notes: s.speaker_notes || s.speakerNotes || ''
-      });
-    }
-
-    return '# NBLM Presentation Blueprint\n' + jsyaml.dump(doc, YAML_OPTIONS);
-  }
-
-  // ──────────────────────────────────────────────
   // NotebookLM Style Mapping
   // ──────────────────────────────────────────────
   var NBLM_STYLE_MAP = {
@@ -183,27 +57,19 @@
   };
 
   // ──────────────────────────────────────────────
-  // buildNotebookLMYaml — NotebookLM-compatible format
+  // buildYaml — 直接輸出 NotebookLM presentation_data 格式
   // ──────────────────────────────────────────────
-  function buildNotebookLMYaml(doc, state) {
-    if (!doc) throw new Error('No document data provided');
+  function buildYaml(jsonData, state) {
+    if (!jsonData) throw new Error('No JSON data provided');
 
-    // Resolve style mapping
+    var labels = resolvePresetLabels(state);
     var styleId = state.visualStyle || 'hand_drawn';
     var styleInfo = NBLM_STYLE_MAP[styleId] || NBLM_STYLE_MAP.hand_drawn;
 
-    var labels = resolvePresetLabels(state);
-
-    // Build title for filename
-    var title = '';
-    if (doc.metadata && doc.metadata.title) {
-      title = doc.metadata.title;
-    } else if (doc.slides && doc.slides[0]) {
-      title = doc.slides[0].title || 'presentation';
-    }
+    var title = jsonData.title || '';
     var safeTitle = title.replace(/[<>:"/\\|?*]/g, '').substring(0, 50);
 
-    // Build system_instructions — match 阿亮校長's strict format
+    // System instructions
     var sysInstructions = '[⚠️ SYSTEM META - INTERNAL USE ONLY - DO NOT PRESENT AS CONTENT]\n';
     sysInstructions += '【給 AI 模型的執行守則】\n';
     sysInstructions += '1. 頁數與結構鐵律：必須嚴格依照 \'slides\' 陣列的長度製作，嚴禁自行增減頁數、合併頁面或省略任何內容。\n';
@@ -216,45 +82,26 @@
     sysInstructions += '8. 視覺風格：' + labels.visualStyle + '\n';
     sysInstructions += '(End of System Instructions)\n';
 
-    // Build slides in NotebookLM format
-    var slides = doc.slides || [];
-    var nblmSlides = [];
+    // Build slides
+    var rawSlides = jsonData.slides || [];
+    var slides = [];
 
-    for (var i = 0; i < slides.length; i++) {
-      var s = slides[i];
+    for (var i = 0; i < rawSlides.length; i++) {
+      var s = rawSlides[i];
 
-      // Determine page type
       var pageType = 'content_page';
-      if (s.type === 'title' || s.type === 'cover' || i === 0) {
-        pageType = 'cover_page';
-      } else if (s.type === 'closing' || s.type === 'end' || i === slides.length - 1) {
-        pageType = 'closing_page';
-      } else if (s.type === 'section' || s.type === 'divider') {
-        pageType = 'section_divider';
-      }
+      if (i === 0) pageType = 'cover_page';
+      else if (i === rawSlides.length - 1) pageType = 'closing_page';
 
-      // Build key_points
-      var keyPoints = [];
-      if (s.key_points && Array.isArray(s.key_points) && s.key_points.length > 0) {
-        keyPoints = s.key_points;
-      } else if (s.content && typeof s.content === 'string') {
-        // Split content into sentences
-        keyPoints = s.content.split(/(?<=[。！？\n])/).filter(function (seg) {
-          return seg.trim().length > 0;
-        }).map(function (seg) {
-          return seg.trim();
-        });
-      }
-
-      // Build visual_description from visual_direction — append style + aspect ratio like 阿亮校長
-      var visualDesc = s.visual_direction || s.visualDirection || '';
+      var keyPoints = s.key_points || s.keyPoints || [];
+      var visualDesc = s.visual_description || s.visual_direction || s.visualDirection || '';
       if (visualDesc) {
         visualDesc = styleInfo.visual_keywords + ', ' + visualDesc + ' --ar 16:9, , ' + (s.title || '');
       } else {
         visualDesc = styleInfo.visual_keywords + ' --ar 16:9, , ' + (s.title || '');
       }
 
-      var slideObj = {
+      slides.push({
         type: pageType,
         layout_style: i === 0 ? 'Centered' : 'Title Top-Left',
         visual_description: visualDesc,
@@ -262,18 +109,10 @@
           title: s.title || '',
           key_points: keyPoints
         }
-      };
-
-      // Add subtitle if present
-      if (s.subtitle) {
-        slideObj.content.subtitle = s.subtitle;
-      }
-
-      nblmSlides.push(slideObj);
+      });
     }
 
-    // Build the NotebookLM-compatible structure
-    var nblmDoc = {
+    var doc = {
       presentation_data: {
         suggested_filename: safeTitle,
         system_instructions: sysInstructions,
@@ -282,7 +121,7 @@
           visual_keywords: styleInfo.visual_keywords,
           target_audience: labels.presenterRole,
           learning_stage: labels.audience,
-          total_pages: slides.length,
+          total_pages: rawSlides.length,
           typography: {
             title_font: styleInfo.title_font,
             body_font: styleInfo.body_font,
@@ -292,11 +131,11 @@
             font_weight: 'Normal'
           }
         },
-        slides: nblmSlides
+        slides: slides
       }
     };
 
-    return jsyaml.dump(nblmDoc, YAML_OPTIONS);
+    return jsyaml.dump(doc, YAML_OPTIONS);
   }
 
   // ──────────────────────────────────────────────
@@ -319,8 +158,6 @@
   // Expose globally
   // ──────────────────────────────────────────────
   window.buildYaml = buildYaml;
-  window.buildTextbookYaml = buildTextbookYaml;
-  window.buildNotebookLMYaml = buildNotebookLMYaml;
   window.downloadFile = downloadFile;
 
 })();

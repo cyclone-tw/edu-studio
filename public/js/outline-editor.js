@@ -6,53 +6,30 @@
 (function (window) {
   'use strict';
 
-  // ──────────────────────────────────────────────
-  // Module State
-  // ──────────────────────────────────────────────
-  var fullDocument = null; // Complete YAML document with metadata
-  var outlineData = []; // Array of slide objects
+  var fullDocument = null;
+  var outlineData = [];
   var containerEl = null;
   var previewEl = null;
   var updateCallback = null;
   var debounceTimer = null;
 
-  // ──────────────────────────────────────────────
-  // Public API
-  // ──────────────────────────────────────────────
-
-  /**
-   * Initialize the outline editor
-   * @param {HTMLElement} container - The outline editor container
-   * @param {HTMLElement} preview - The YAML preview textarea
-   * @param {Function} onUpdate - Callback when outline changes
-   */
   function init(container, preview, onUpdate) {
     containerEl = container;
     previewEl = preview;
     updateCallback = onUpdate;
   }
 
-  /**
-   * Load outline data and render cards
-   * @param {Array|Object} data - Array of slide objects OR full document with metadata
-   * @param {Object} document - Optional full document structure (for backward compatibility)
-   */
-  function loadOutline(data, document) {
-    // Support both new format (full document) and old format (just slides array)
-    if (document) {
-      // New format: data is slides array, document is full structure
-      fullDocument = document;
-      outlineData = data || [];
-    } else if (Array.isArray(data)) {
-      // Old format: just slides array
-      fullDocument = null;
-      outlineData = data || [];
+  function loadOutline(data) {
+    if (data && data.presentation_data && data.presentation_data.slides) {
+      fullDocument = data;
+      outlineData = data.presentation_data.slides || [];
     } else if (data && data.slides) {
-      // New format: data is full document
       fullDocument = data;
       outlineData = data.slides || [];
+    } else if (Array.isArray(data)) {
+      fullDocument = null;
+      outlineData = data || [];
     } else {
-      // Fallback
       fullDocument = null;
       outlineData = [];
     }
@@ -61,17 +38,10 @@
     syncToPreview();
   }
 
-  /**
-   * Get current outline data
-   * @returns {Array} Current outline data
-   */
   function getOutline() {
     return outlineData;
   }
 
-  /**
-   * Clear the outline editor
-   */
   function clear() {
     outlineData = [];
     if (containerEl) {
@@ -83,7 +53,7 @@
   }
 
   // ──────────────────────────────────────────────
-  // Rendering
+  // Rendering — only title, key_points, visual_description
   // ──────────────────────────────────────────────
 
   function renderCards() {
@@ -102,27 +72,27 @@
   }
 
   function createSlideCard(slide, index) {
-    // Create card container
     var card = document.createElement('div');
     card.className = 'outline-card';
     card.dataset.index = index;
 
-    // Card header with slide number
+    // Header
     var header = document.createElement('div');
     header.className = 'outline-card-header';
-
     var numberSpan = document.createElement('span');
     numberSpan.className = 'outline-card-number';
     numberSpan.textContent = 'Slide ' + (index + 1);
     header.appendChild(numberSpan);
-
     card.appendChild(header);
 
-    // Card body
+    // Body
     var body = document.createElement('div');
     body.className = 'outline-card-body';
 
-    // Title field
+    // Title
+    var content = slide.content || slide;
+    var titleValue = (content && content.title) || slide.title || '';
+
     var titleLabel = document.createElement('label');
     titleLabel.className = 'outline-field-label';
     titleLabel.textContent = '標題';
@@ -130,127 +100,58 @@
     var titleInput = document.createElement('input');
     titleInput.type = 'text';
     titleInput.className = 'outline-field-input';
-    titleInput.value = slide.title || '';
+    titleInput.value = titleValue;
     titleInput.dataset.field = 'title';
     titleInput.dataset.index = index;
 
     body.appendChild(titleLabel);
     body.appendChild(titleInput);
 
-    // Subtitle (if present)
-    if (slide.subtitle) {
-      var subtitleLabel = document.createElement('label');
-      subtitleLabel.className = 'outline-field-label';
-      subtitleLabel.textContent = '副標題';
+    // Key points
+    var keyPoints = (content && content.key_points) || slide.key_points || [];
 
-      var subtitleInput = document.createElement('input');
-      subtitleInput.type = 'text';
-      subtitleInput.className = 'outline-field-input';
-      subtitleInput.value = slide.subtitle || '';
-      subtitleInput.dataset.field = 'subtitle';
-      subtitleInput.dataset.index = index;
+    var pointsLabel = document.createElement('label');
+    pointsLabel.className = 'outline-field-label';
+    pointsLabel.textContent = '內容 (一行一點)';
 
-      body.appendChild(subtitleLabel);
-      body.appendChild(subtitleInput);
-    }
+    var pointsTextarea = document.createElement('textarea');
+    pointsTextarea.className = 'outline-field-textarea';
+    pointsTextarea.rows = 4;
+    pointsTextarea.value = Array.isArray(keyPoints) ? keyPoints.join('\n') : '';
+    pointsTextarea.dataset.field = 'key_points';
+    pointsTextarea.dataset.index = index;
 
-    // Key points or content (depending on mode)
-    if (slide.key_points && Array.isArray(slide.key_points)) {
-      // AI mode: key_points
-      var pointsLabel = document.createElement('label');
-      pointsLabel.className = 'outline-field-label';
-      pointsLabel.textContent = '重點 (一行一點)';
+    body.appendChild(pointsLabel);
+    body.appendChild(pointsTextarea);
 
-      var pointsTextarea = document.createElement('textarea');
-      pointsTextarea.className = 'outline-field-textarea';
-      pointsTextarea.rows = 4;
-      pointsTextarea.value = slide.key_points.join('\n');
-      pointsTextarea.dataset.field = 'key_points';
-      pointsTextarea.dataset.index = index;
+    // Visual description
+    var visualDesc = slide.visual_description || '';
 
-      body.appendChild(pointsLabel);
-      body.appendChild(pointsTextarea);
-    } else if (slide.content) {
-      // Textbook mode: content
-      var contentLabel = document.createElement('label');
-      contentLabel.className = 'outline-field-label';
-      contentLabel.textContent = '內容';
+    var vdLabel = document.createElement('label');
+    vdLabel.className = 'outline-field-label';
+    vdLabel.textContent = '視覺描述';
 
-      var contentTextarea = document.createElement('textarea');
-      contentTextarea.className = 'outline-field-textarea';
-      contentTextarea.rows = 4;
-      contentTextarea.value = slide.content || '';
-      contentTextarea.dataset.field = 'content';
-      contentTextarea.dataset.index = index;
+    var vdTextarea = document.createElement('textarea');
+    vdTextarea.className = 'outline-field-textarea outline-field-secondary';
+    vdTextarea.rows = 2;
+    vdTextarea.value = visualDesc;
+    vdTextarea.dataset.field = 'visual_description';
+    vdTextarea.dataset.index = index;
 
-      body.appendChild(contentLabel);
-      body.appendChild(contentTextarea);
-    }
-
-    // Visual direction (if present)
-    if (slide.visual_direction) {
-      var vdLabel = document.createElement('label');
-      vdLabel.className = 'outline-field-label';
-      vdLabel.textContent = '視覺指示';
-
-      var vdTextarea = document.createElement('textarea');
-      vdTextarea.className = 'outline-field-textarea outline-field-secondary';
-      vdTextarea.rows = 2;
-      vdTextarea.value = slide.visual_direction || '';
-      vdTextarea.dataset.field = 'visual_direction';
-      vdTextarea.dataset.index = index;
-
-      body.appendChild(vdLabel);
-      body.appendChild(vdTextarea);
-    }
-
-    // Interaction (if present)
-    if (slide.interaction) {
-      var intLabel = document.createElement('label');
-      intLabel.className = 'outline-field-label';
-      intLabel.textContent = '互動設計';
-
-      var intTextarea = document.createElement('textarea');
-      intTextarea.className = 'outline-field-textarea outline-field-secondary';
-      intTextarea.rows = 2;
-      intTextarea.value = slide.interaction || '';
-      intTextarea.dataset.field = 'interaction';
-      intTextarea.dataset.index = index;
-
-      body.appendChild(intLabel);
-      body.appendChild(intTextarea);
-    }
-
-    // Speaker notes (if present)
-    if (slide.speaker_notes) {
-      var snLabel = document.createElement('label');
-      snLabel.className = 'outline-field-label';
-      snLabel.textContent = '講稿';
-
-      var snTextarea = document.createElement('textarea');
-      snTextarea.className = 'outline-field-textarea outline-field-secondary';
-      snTextarea.rows = 3;
-      snTextarea.value = slide.speaker_notes || '';
-      snTextarea.dataset.field = 'speaker_notes';
-      snTextarea.dataset.index = index;
-
-      body.appendChild(snLabel);
-      body.appendChild(snTextarea);
-    }
+    body.appendChild(vdLabel);
+    body.appendChild(vdTextarea);
 
     card.appendChild(body);
-
     return card;
   }
 
   // ──────────────────────────────────────────────
-  // Event Handling & Updates
+  // Event Handling
   // ──────────────────────────────────────────────
 
   function bindEvents() {
     if (!containerEl) return;
 
-    // Use event delegation for input/textarea changes
     containerEl.addEventListener('input', function (e) {
       var target = e.target;
       if (target.classList.contains('outline-field-input') ||
@@ -267,22 +168,25 @@
 
     if (isNaN(index) || !outlineData[index]) return;
 
-    // Update outlineData
-    if (field === 'key_points') {
-      // Split by newline, filter empty lines
+    if (field === 'title') {
+      if (outlineData[index].content) {
+        outlineData[index].content.title = value;
+      } else {
+        outlineData[index].title = value;
+      }
+    } else if (field === 'key_points') {
       var points = value.split('\n').filter(function (line) {
         return line.trim().length > 0;
       });
-      outlineData[index].key_points = points;
-      // Also sync to content field (for textbook mode compatibility)
-      if (outlineData[index].content !== undefined) {
-        outlineData[index].content = points.join('');
+      if (outlineData[index].content) {
+        outlineData[index].content.key_points = points;
+      } else {
+        outlineData[index].key_points = points;
       }
-    } else {
-      outlineData[index][field] = value;
+    } else if (field === 'visual_description') {
+      outlineData[index].visual_description = value;
     }
 
-    // Debounced sync to YAML preview
     debouncedSync();
   }
 
@@ -295,7 +199,7 @@
       if (updateCallback) {
         updateCallback(outlineData);
       }
-    }, 300); // 300ms debounce
+    }, 300);
   }
 
   // ──────────────────────────────────────────────
@@ -303,44 +207,23 @@
   // ──────────────────────────────────────────────
 
   function syncToPreview() {
-    if (!previewEl) return;
+    if (!previewEl || !fullDocument) return;
 
     try {
-      var yamlString;
-
-      if (fullDocument) {
-        // Generate complete YAML with metadata
-        var doc = {
-          metadata: fullDocument.metadata || {},
-          presentation_strategy: fullDocument.presentation_strategy || {},
-          slides: outlineData,
-          appendix: fullDocument.appendix || {}
-        };
-
-        yamlString = '# NBLM Presentation Blueprint\n' + jsyaml.dump(doc, {
-          indent: 2,
-          lineWidth: -1,
-          noRefs: true,
-          quotingType: '"'
-        });
-      } else {
-        // Fallback: just dump slides array
-        yamlString = jsyaml.dump(outlineData, {
-          indent: 2,
-          lineWidth: -1,
-          noRefs: true
-        });
-      }
-
+      var yamlString = jsyaml.dump(fullDocument, {
+        indent: 2,
+        lineWidth: -1,
+        noRefs: true,
+        quotingType: '"'
+      });
       previewEl.value = yamlString;
     } catch (err) {
       console.error('Failed to generate YAML:', err);
-      previewEl.value = '# YAML 生成失敗\n# ' + err.message;
     }
   }
 
   // ──────────────────────────────────────────────
-  // Export Public API
+  // Export
   // ──────────────────────────────────────────────
 
   window.OutlineEditor = {
