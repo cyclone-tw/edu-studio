@@ -265,26 +265,34 @@
     <!-- ============================== -->
     <section class="step-panel hidden" id="step4Panel" data-step="4">
       <h2 class="panel-title">預覽與匯出</h2>
-      <p class="panel-desc">編輯 YAML 或直接匯出結果</p>
+      <p class="panel-desc">編輯大綱並預覽 YAML 內容</p>
 
       <div class="editor-split">
-        <!-- Left: YAML editor -->
-        <div class="editor-pane">
+        <!-- Left: Outline Editor -->
+        <div class="outline-editor-pane">
           <div class="editor-pane-header">
-            <span>YAML 編輯器</span>
+            <span>📝 大綱編輯器</span>
           </div>
-          <textarea class="form-textarea editor-textarea" id="yamlEditor"
-            placeholder="生成的 YAML 將顯示在這裡..." spellcheck="false"></textarea>
+          <div class="outline-editor" id="outlineEditor">
+            <!-- Cards will be rendered here by outline-editor.js -->
+            <p class="editor-placeholder">生成後顯示大綱編輯器...</p>
+          </div>
         </div>
 
-        <!-- Right: preview -->
-        <div class="preview-pane">
+        <!-- Right: YAML Preview -->
+        <div class="yaml-preview-pane">
           <div class="editor-pane-header">
-            <span>簡報預覽</span>
+            <span>📄 YAML 預覽</span>
+            <button class="btn btn-sm btn-copy" id="btnCopyYaml" type="button" title="複製 YAML">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              複製 YAML
+            </button>
           </div>
-          <div class="preview-content" id="previewContent">
-            <p class="preview-placeholder">預覽區域 — 生成後自動顯示</p>
-          </div>
+          <textarea class="form-textarea yaml-preview-textarea" id="yamlPreview"
+            placeholder="YAML 預覽將顯示在這裡..." spellcheck="false" readonly></textarea>
         </div>
       </div>
 
