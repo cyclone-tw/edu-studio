@@ -79,7 +79,8 @@
     btnCloseHelp:      $('#btnCloseHelp'),
     btnHelpOk:         $('#btnHelpOk'),
     btnCopyYaml:       $('#btnCopyYaml'),
-    yamlPreview:       $('#yamlPreview')
+    yamlPreview:       $('#yamlPreview'),
+    outlineEditor:     $('#outlineEditor')
   };
 
   // ──────────────────────────────────────────────
@@ -542,7 +543,20 @@
             yamlString = jsyaml.dump(result);
           }
 
-          dom.yamlEditor.value = yamlString;
+          // Update both yamlEditor (legacy) and yamlPreview (new)
+          if (dom.yamlEditor) dom.yamlEditor.value = yamlString;
+          if (dom.yamlPreview) dom.yamlPreview.value = yamlString;
+
+          // Load outline into editor
+          if (typeof OutlineEditor !== 'undefined' && result) {
+            try {
+              // Parse result to get slides array
+              var slides = Array.isArray(result) ? result : (result.slides || []);
+              OutlineEditor.loadOutline(slides);
+            } catch (outlineErr) {
+              console.warn('[OutlineEditor] Load failed:', outlineErr);
+            }
+          }
 
           // Trigger preview if renderPreview is available
           if (typeof window.renderPreview === 'function') {
@@ -852,6 +866,19 @@
 
     // Init help modal
     initHelpModal();
+
+    // Init outline editor
+    if (typeof OutlineEditor !== 'undefined') {
+      OutlineEditor.init(
+        dom.outlineEditor || document.getElementById('outlineEditor'),
+        dom.yamlPreview,
+        function (updatedOutline) {
+          // Callback when outline is updated
+          console.log('[OutlineEditor] Updated:', updatedOutline);
+        }
+      );
+      OutlineEditor.bindEvents();
+    }
 
     // Set initial mode (ensures correct panel visibility)
     setMode(state.mode);
