@@ -203,14 +203,18 @@
     }
     var safeTitle = title.replace(/[<>:"/\\|?*\s]/g, '_').substring(0, 30);
 
-    // Build system_instructions
-    var sysInstructions = '你是一位專業的簡報設計AI。請嚴格按照以下YAML中的指示生成簡報。\n';
-    sysInstructions += '每一頁的視覺描述(visual_description)是你繪製背景與插圖的依據。\n';
-    sysInstructions += '每一頁的key_points是你放置文字內容的依據，必須完整呈現，不可刪減或摘要。\n';
-    sysInstructions += '講者角色：' + labels.presenterRole + '\n';
-    sysInstructions += '目標受眾：' + labels.audience + '\n';
-    sysInstructions += '簡報場景：' + labels.context + '\n';
-    sysInstructions += '視覺風格：' + labels.visualStyle;
+    // Build system_instructions — match 阿亮校長's strict format
+    var sysInstructions = '[⚠️ SYSTEM META - INTERNAL USE ONLY - DO NOT PRESENT AS CONTENT]\n';
+    sysInstructions += '【給 AI 模型的執行守則】\n';
+    sysInstructions += '1. 頁數與結構鐵律：必須嚴格依照 \'slides\' 陣列的長度製作，嚴禁自行增減頁數、合併頁面或省略任何內容。\n';
+    sysInstructions += '2. 標題識別：YAML 中 \'title\' 欄位即為該頁標題。\n';
+    sysInstructions += '3. 內容忠實性：\'key_points\' 內的文字為核心文案，必須 100% 保留原意，不可刪減或改寫。請逐字呈現，禁止摘要、濃縮或換句話說。\n';
+    sysInstructions += '4. 視覺指示：\'visual_description\' 為該頁的視覺設計依據，請據此繪製背景與插圖。\n';
+    sysInstructions += '5. 講者角色：' + labels.presenterRole + '\n';
+    sysInstructions += '6. 目標受眾：' + labels.audience + '\n';
+    sysInstructions += '7. 簡報場景：' + labels.context + '\n';
+    sysInstructions += '8. 視覺風格：' + labels.visualStyle + '\n';
+    sysInstructions += '(End of System Instructions)';
 
     // Build slides in NotebookLM format
     var slides = doc.slides || [];
@@ -242,10 +246,12 @@
         });
       }
 
-      // Build visual_description from visual_direction
+      // Build visual_description from visual_direction — append style + aspect ratio like 阿亮校長
       var visualDesc = s.visual_direction || s.visualDirection || '';
-      if (!visualDesc) {
-        visualDesc = styleInfo.visual_keywords + '風格背景';
+      if (visualDesc) {
+        visualDesc = styleInfo.visual_keywords + ', ' + visualDesc + ' --ar 16:9, , ' + (s.title || '');
+      } else {
+        visualDesc = styleInfo.visual_keywords + ' --ar 16:9, , ' + (s.title || '');
       }
 
       var slideObj = {
@@ -263,11 +269,6 @@
         slideObj.content.subtitle = s.subtitle;
       }
 
-      // Add speaker_notes if present
-      if (s.speaker_notes) {
-        slideObj.speaker_notes = s.speaker_notes;
-      }
-
       nblmSlides.push(slideObj);
     }
 
@@ -279,13 +280,16 @@
         global_design: {
           style_name: styleInfo.style_name,
           visual_keywords: styleInfo.visual_keywords,
-          target_audience: labels.audience,
+          target_audience: labels.presenterRole,
+          learning_stage: labels.audience,
           total_pages: slides.length,
           typography: {
             title_font: styleInfo.title_font,
             body_font: styleInfo.body_font,
-            title_size: '28pt',
-            body_size: '16pt'
+            title_size: '48pt',
+            subtitle_size: '32pt',
+            body_size: '18pt',
+            font_weight: 'Normal'
           }
         },
         slides: nblmSlides
