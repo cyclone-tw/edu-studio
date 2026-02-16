@@ -280,9 +280,74 @@
   }
 
   // ──────────────────────────────────────────────
+  // generateFromOutline — 依據上傳者大綱轉檔
+  // ──────────────────────────────────────────────
+  async function generateFromOutline(text, state) {
+    if (!text || !text.trim()) {
+      throw new Error('請輸入簡報大綱內容');
+    }
+    if (!state || !state.apiKey) {
+      throw new Error('請先設定 Gemini API Key');
+    }
+
+    var prompt = '你是一位簡報格式轉換專家。請將使用者提供的簡報大綱轉換為結構化 JSON 格式。\n\n'
+      + '嚴格規則：\n'
+      + '1. 大綱中的「標題」和「內容文字」必須「一字不改」「一字不漏」\n'
+      + '2. 只需要將大綱轉換為 JSON 結構，不要新增任何額外內容\n'
+      + '3. 保持使用者原始的分頁和段落結構\n'
+      + '4. 如果使用者沒有明確標示頁數，請根據內容合理分頁\n\n'
+      + '輸出 JSON 格式：\n'
+      + '{\n'
+      + '  "title": "根據大綱內容產生的標題",\n'
+      + '  "slides": [\n'
+      + '    {\n'
+      + '      "slide_number": 1,\n'
+      + '      "type": "title|content",\n'
+      + '      "title": "此頁標題（從大綱提取，一字不改）",\n'
+      + '      "key_points": ["要點1", "要點2"],\n'
+      + '      "speaker_notes": "講稿內容（如有提供）"\n'
+      + '    }\n'
+      + '  ]\n'
+      + '}\n\n'
+      + '使用者提供的大綱：\n' + text;
+
+    var result = await callGemini(state.apiKey, prompt);
+
+    // Wrap the result to include metadata and strategy for consistency
+    var roleLabel = lookupLabel('presenterRoles', state.presenterRole);
+    var audienceLabel = lookupLabel('audienceProfiles', state.audience);
+    var contextLabel = lookupLabel('contexts', state.context);
+    var styleLabel = lookupLabel('visualStyles', state.visualStyle);
+
+    if (!result.presentation_strategy) {
+      result.presentation_strategy = {
+        opening_hook: '依據使用者大綱呈現',
+        core_message: result.title || '簡報大綱',
+        audience_adaptation: '保持使用者原始大綱結構和文字',
+        closing_action: '依據大綱內容總結'
+      };
+    }
+
+    if (!result.metadata) {
+      result.metadata = {
+        mode: 'outline',
+        presenterRole: roleLabel,
+        audience: audienceLabel,
+        context: contextLabel,
+        visualStyle: styleLabel,
+        slideCount: state.slideCount,
+        language: state.language
+      };
+    }
+
+    return result;
+  }
+
+  // ──────────────────────────────────────────────
   // Expose globally
   // ──────────────────────────────────────────────
   window.generatePresentation = generatePresentation;
   window.splitTextbook = splitTextbook;
+  window.generateFromOutline = generateFromOutline;
 
 })();

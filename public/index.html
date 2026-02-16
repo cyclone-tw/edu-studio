@@ -200,19 +200,38 @@
 
       <!-- AI mode input -->
       <div class="input-area" id="aiInputArea">
-        <textarea class="form-textarea form-textarea-lg" id="materialText"
-          placeholder="貼上文字素材..." rows="10"></textarea>
-        <div class="file-upload-row">
-          <label class="btn btn-secondary btn-upload" for="materialFile">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-            上傳檔案
-          </label>
-          <input type="file" id="materialFile" accept=".pdf,.txt" hidden>
-          <span class="file-name" id="fileName"></span>
+        <!-- AI mode tabs -->
+        <div class="ai-input-tabs">
+          <button class="ai-tab active" data-ai-mode="smart" type="button">
+            ✨ AI 自動生成
+          </button>
+          <button class="ai-tab" data-ai-mode="outline" type="button">
+            📝 現有大綱轉檔
+          </button>
+        </div>
+
+        <!-- Smart generation input (default) -->
+        <div class="ai-input-panel" id="smartInputPanel">
+          <textarea class="form-textarea form-textarea-lg" id="materialText"
+            placeholder="貼上文字素材，AI 將自動分析並生成簡報架構..." rows="10"></textarea>
+          <div class="file-upload-row">
+            <label class="btn btn-secondary btn-upload" for="materialFile">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              上傳檔案
+            </label>
+            <input type="file" id="materialFile" accept=".pdf,.txt" hidden>
+            <span class="file-name" id="fileName"></span>
+          </div>
+        </div>
+
+        <!-- Outline-based input (hidden by default) -->
+        <div class="ai-input-panel hidden" id="outlineInputPanel">
+          <textarea class="form-textarea form-textarea-lg" id="outlineText"
+            placeholder="貼上已有的簡報大綱（每行一個標題，文字內容完全不做修改）...&#10;&#10;範例：&#10;第一頁：開場白&#10;這是開場的內容...&#10;&#10;第二頁：主題介紹&#10;這是主題的說明..." rows="10"></textarea>
         </div>
       </div>
 
@@ -270,7 +289,7 @@
               <polyline points="7 10 12 15 17 10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            下載 YAML
+            下載 TXT
           </button>
           <button class="btn btn-secondary" id="btnDownloadMd" type="button">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

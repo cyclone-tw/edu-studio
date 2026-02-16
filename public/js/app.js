@@ -10,6 +10,7 @@
   // ──────────────────────────────────────────────
   const state = {
     mode: 'ai',                // 'ai' | 'textbook' | 'pdf'
+    aiInputMode: 'smart',      // 'smart' | 'outline' (for AI mode)
     step: 1,
     presenterRole: null,
     audience: null,
@@ -46,8 +47,12 @@
     language:          $('#language'),
     customPrompt:      $('#customPrompt'),
     aiInputArea:       $('#aiInputArea'),
+    aiInputTabs:       $('.ai-input-tabs'),
+    smartInputPanel:   $('#smartInputPanel'),
+    outlineInputPanel: $('#outlineInputPanel'),
     textbookInputArea: $('#textbookInputArea'),
     materialText:      $('#materialText'),
+    outlineText:       $('#outlineText'),
     textbookText:      $('#textbookText'),
     materialFile:      $('#materialFile'),
     fileName:          $('#fileName'),
@@ -190,6 +195,27 @@
 
       // Go to current step (re-render step panels visibility)
       goToStep(state.step);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // AI Input Mode Tab Switching
+  // ──────────────────────────────────────────────
+  function setAiInputMode(aiMode) {
+    state.aiInputMode = aiMode;
+
+    // Toggle active class on AI input tabs
+    $$('.ai-tab').forEach(function (tab) {
+      tab.classList.toggle('active', tab.getAttribute('data-ai-mode') === aiMode);
+    });
+
+    // Toggle input panels
+    if (aiMode === 'smart') {
+      dom.smartInputPanel.classList.remove('hidden');
+      dom.outlineInputPanel.classList.add('hidden');
+    } else {
+      dom.smartInputPanel.classList.add('hidden');
+      dom.outlineInputPanel.classList.remove('hidden');
     }
   }
 
@@ -409,7 +435,11 @@
   // ──────────────────────────────────────────────
   function getInputText() {
     if (state.mode === 'ai') {
-      return (dom.materialText.value || '').trim();
+      if (state.aiInputMode === 'smart') {
+        return (dom.materialText.value || '').trim();
+      } else {
+        return (dom.outlineText.value || '').trim();
+      }
     }
     if (state.mode === 'textbook') {
       return (dom.textbookText.value || '').trim();
@@ -447,8 +477,16 @@
       try {
         var result;
 
-        if (state.mode === 'ai' && typeof window.generatePresentation === 'function') {
-          result = await window.generatePresentation(text, state);
+        if (state.mode === 'ai') {
+          if (state.aiInputMode === 'smart' && typeof window.generatePresentation === 'function') {
+            result = await window.generatePresentation(text, state);
+          } else if (state.aiInputMode === 'outline' && typeof window.generateFromOutline === 'function') {
+            result = await window.generateFromOutline(text, state);
+          } else {
+            hideLoading();
+            showToast('Gemini 模組尚未載入', 'error');
+            return;
+          }
         } else if (state.mode === 'textbook' && typeof window.splitTextbook === 'function') {
           result = await window.splitTextbook(text, state);
         } else {
@@ -504,8 +542,8 @@
         showToast('沒有可下載的內容', 'error');
         return;
       }
-      downloadFile(content, 'presentation.yaml', 'text/yaml');
-      showToast('YAML 已下載', 'success');
+      downloadFile(content, 'presentation.txt', 'text/plain');
+      showToast('TXT 已下載', 'success');
     });
 
     dom.btnDownloadMd.addEventListener('click', function () {
@@ -645,6 +683,19 @@
   }
 
   // ──────────────────────────────────────────────
+  // AI Input Tab Event Listener
+  // ──────────────────────────────────────────────
+  function initAiInputTabs() {
+    if (!dom.aiInputTabs) return;
+    dom.aiInputTabs.addEventListener('click', function (e) {
+      var tab = e.target.closest('.ai-tab');
+      if (!tab) return;
+      var aiMode = tab.getAttribute('data-ai-mode');
+      if (aiMode) setAiInputMode(aiMode);
+    });
+  }
+
+  // ──────────────────────────────────────────────
   // Initialize Everything on DOMContentLoaded
   // ──────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', function () {
@@ -664,6 +715,7 @@
 
     // Init navigation
     initModeTabs();
+    initAiInputTabs();
     initStepNavigation();
 
     // Init generate & export
@@ -675,6 +727,7 @@
 
     // Set initial mode (ensures correct panel visibility)
     setMode(state.mode);
+    setAiInputMode(state.aiInputMode);
   });
 
 })();
