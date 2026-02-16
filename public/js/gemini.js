@@ -36,12 +36,23 @@
   // ──────────────────────────────────────────────
   // Helper: callGemini
   // ──────────────────────────────────────────────
+  let isCallingGemini = false; // Prevent concurrent calls
+
   async function callGemini(apiKey, prompt) {
     if (!apiKey) {
       throw new Error('請先設定 Gemini API Key');
     }
 
-    var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
+    // Prevent concurrent API calls
+    if (isCallingGemini) {
+      console.warn('[Gemini] 已有進行中的 API 請求，跳過此次呼叫');
+      throw new Error('已有進行中的生成任務，請稍候');
+    }
+
+    isCallingGemini = true;
+
+    // Using gemini-2.5-flash (latest stable, better rate limits)
+    var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
 
     var response;
     try {
@@ -59,10 +70,12 @@
         })
       });
     } catch (networkErr) {
+      isCallingGemini = false;
       throw new Error('網路連線失敗，請檢查網路狀態後重試。（' + (networkErr.message || '未知錯誤') + '）');
     }
 
     if (!response.ok) {
+      isCallingGemini = false;
       var err = await response.json().catch(function () { return {}; });
       var errMsg = (err.error && err.error.message) || '';
 
@@ -86,12 +99,17 @@
       && data.candidates[0].content.parts[0]
       && data.candidates[0].content.parts[0].text;
 
-    if (!text) throw new Error('API 回應格式異常，請重試');
+    if (!text) {
+      isCallingGemini = false;
+      throw new Error('API 回應格式異常，請重試');
+    }
 
     try {
       return JSON.parse(text);
     } catch (parseErr) {
       throw new Error('AI 回應格式解析失敗，請重新生成');
+    } finally {
+      isCallingGemini = false; // Always reset the flag
     }
   }
 

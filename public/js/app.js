@@ -87,15 +87,22 @@
     });
 
     setTimeout(function () {
+      if (!toast) return; // Guard against null toast
       toast.classList.remove('toast-visible');
       toast.classList.add('toast-fade-out');
-      toast.addEventListener('transitionend', function () {
-        if (toast.parentNode) toast.parentNode.removeChild(toast);
-      });
+
+      var removed = false;
+      var removeToast = function() {
+        if (removed || !toast) return; // Prevent double removal
+        removed = true;
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      };
+
+      toast.addEventListener('transitionend', removeToast, { once: true });
       // Fallback removal
-      setTimeout(function () {
-        if (toast.parentNode) toast.parentNode.removeChild(toast);
-      }, 500);
+      setTimeout(removeToast, 500);
     }, 3000);
   }
 
