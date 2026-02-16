@@ -1,0 +1,7 @@
+node_modules
+uploads
+*.zip
+.git
+.gitignore
+docs
+.DS_Store
