@@ -440,13 +440,28 @@
           return;
         }
 
-        // Populate YAML editor
+        // Build structured YAML from JSON result
         if (result) {
-          dom.yamlEditor.value = typeof result === 'string' ? result : jsyaml.dump(result);
+          var yamlString;
+          try {
+            if (state.mode === 'textbook' && typeof window.buildTextbookYaml === 'function') {
+              yamlString = window.buildTextbookYaml(result, state);
+            } else if (typeof window.buildYaml === 'function') {
+              yamlString = window.buildYaml(result, state);
+            } else {
+              // Fallback: raw YAML dump
+              yamlString = jsyaml.dump(result);
+            }
+          } catch (buildErr) {
+            console.warn('[YAML Build Warning]', buildErr);
+            yamlString = jsyaml.dump(result);
+          }
+
+          dom.yamlEditor.value = yamlString;
 
           // Trigger preview if renderPreview is available
           if (typeof window.renderPreview === 'function') {
-            window.renderPreview(dom.yamlEditor.value);
+            window.renderPreview(yamlString);
           }
         }
 
@@ -520,6 +535,14 @@
         var title = slide.title || slide.heading || ('Slide ' + (idx + 1));
         lines.push('## ' + (idx + 1) + '. ' + title);
 
+        // Handle key_points (AI mode)
+        if (slide.key_points && Array.isArray(slide.key_points) && slide.key_points.length > 0) {
+          slide.key_points.forEach(function (point) {
+            lines.push('- ' + point);
+          });
+        }
+
+        // Handle content (textbook mode)
         if (slide.content) {
           if (Array.isArray(slide.content)) {
             slide.content.forEach(function (item) {
@@ -530,8 +553,10 @@
           }
         }
 
-        if (slide.notes) {
-          lines.push('\n> ' + slide.notes);
+        // Handle speaker_notes or notes
+        var notes = slide.speaker_notes || slide.notes;
+        if (notes) {
+          lines.push('\n> ' + notes);
         }
 
         lines.push('');

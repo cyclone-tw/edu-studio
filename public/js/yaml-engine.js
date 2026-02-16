@@ -56,10 +56,14 @@
         generated_at: new Date().toISOString()
       },
       presentation_strategy: {
-        opening_hook: jsonData.opening_hook || jsonData.openingHook || '',
-        core_message: jsonData.core_message || jsonData.coreMessage || '',
-        audience_adaptation: jsonData.audience_adaptation || jsonData.audienceAdaptation || '',
-        closing_action: jsonData.closing_action || jsonData.closingAction || ''
+        opening_hook: (jsonData.presentation_strategy && jsonData.presentation_strategy.opening_hook)
+          || jsonData.opening_hook || jsonData.openingHook || '',
+        core_message: (jsonData.presentation_strategy && jsonData.presentation_strategy.core_message)
+          || jsonData.core_message || jsonData.coreMessage || '',
+        audience_adaptation: (jsonData.presentation_strategy && jsonData.presentation_strategy.audience_adaptation)
+          || jsonData.audience_adaptation || jsonData.audienceAdaptation || '',
+        closing_action: (jsonData.presentation_strategy && jsonData.presentation_strategy.closing_action)
+          || jsonData.closing_action || jsonData.closingAction || ''
       },
       slides: [],
       appendix: {

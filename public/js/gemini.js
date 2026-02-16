@@ -37,25 +37,45 @@
   // Helper: callGemini
   // ──────────────────────────────────────────────
   async function callGemini(apiKey, prompt) {
+    if (!apiKey) {
+      throw new Error('請先設定 Gemini API Key');
+    }
+
     var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
 
-    var response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          topP: 0.9,
-          maxOutputTokens: 8192,
-          responseMimeType: 'application/json'
-        }
-      })
-    });
+    var response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            topP: 0.9,
+            maxOutputTokens: 8192,
+            responseMimeType: 'application/json'
+          }
+        })
+      });
+    } catch (networkErr) {
+      throw new Error('網路連線失敗，請檢查網路狀態後重試。（' + (networkErr.message || '未知錯誤') + '）');
+    }
 
     if (!response.ok) {
       var err = await response.json().catch(function () { return {}; });
-      throw new Error((err.error && err.error.message) || ('API 錯誤: ' + response.status));
+      var errMsg = (err.error && err.error.message) || '';
+
+      if (response.status === 400 && errMsg.toLowerCase().indexOf('api key') !== -1) {
+        throw new Error('API Key 無效，請檢查後重新設定');
+      } else if (response.status === 403) {
+        throw new Error('API Key 權限不足或已被停用，請確認 Key 的有效性');
+      } else if (response.status === 429) {
+        throw new Error('API 請求次數超過限制，請稍後再試');
+      } else if (response.status >= 500) {
+        throw new Error('Gemini API 伺服器錯誤，請稍後重試');
+      }
+      throw new Error(errMsg || ('API 錯誤: ' + response.status));
     }
 
     var data = await response.json();
@@ -66,15 +86,26 @@
       && data.candidates[0].content.parts[0]
       && data.candidates[0].content.parts[0].text;
 
-    if (!text) throw new Error('API 回應格式異常');
+    if (!text) throw new Error('API 回應格式異常，請重試');
 
-    return JSON.parse(text);
+    try {
+      return JSON.parse(text);
+    } catch (parseErr) {
+      throw new Error('AI 回應格式解析失敗，請重新生成');
+    }
   }
 
   // ──────────────────────────────────────────────
   // generatePresentation — AI 智慧生成模式
   // ──────────────────────────────────────────────
   async function generatePresentation(text, state) {
+    if (!text || !text.trim()) {
+      throw new Error('請輸入素材內容');
+    }
+    if (!state || !state.apiKey) {
+      throw new Error('請先設定 Gemini API Key');
+    }
+
     var role = lookupItem('presenterRoles', state.presenterRole);
     var audience = lookupItem('audienceProfiles', state.audience);
     var context = lookupItem('contexts', state.context);
@@ -96,7 +127,8 @@
     var languageDesc = {
       'zh-TW': '繁體中文',
       'en': 'English',
-      'ja': '日本語'
+      'ja': '日本語',
+      'bilingual': '雙語混合（中英）'
     };
 
     var prompt = '你是一位專業的簡報架構師，擅長根據素材和情境設計出最佳簡報結構。\n\n'
@@ -163,6 +195,13 @@
   // splitTextbook — 課文忠實模式
   // ──────────────────────────────────────────────
   async function splitTextbook(text, state) {
+    if (!text || !text.trim()) {
+      throw new Error('請輸入課文內容');
+    }
+    if (!state || !state.apiKey) {
+      throw new Error('請先設定 Gemini API Key');
+    }
+
     var prompt = '你是一位簡報分段專家。請將以下課文依照段落邏輯，分配到 '
       + state.slideCount + ' 張投影片中。\n\n'
       + '嚴格規則：\n'

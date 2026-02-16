@@ -8,6 +8,12 @@
   const resultsGrid = document.getElementById('pdfResultsGrid');
   const downloadAllBtn = document.getElementById('btnDownloadAllImages');
 
+  // Guard: if PDF panel elements are missing, skip initialization
+  if (!dropzone || !fileInput || !downloadAllBtn) {
+    console.warn('[pdf-splitter] PDF panel elements not found, skipping initialization');
+    return;
+  }
+
   let lastZipBlob = null;
   let lastFileName = '';
 

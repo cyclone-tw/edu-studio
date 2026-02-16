@@ -1,4 +1,5 @@
-const PRESETS = {
+// Expose globally so yaml-engine.js can access via window.PRESETS
+const PRESETS = window.PRESETS = {
   presenterRoles: [
     { id: 'teacher', label: '👨‍🏫 教師', tone: '引導式、循序漸進' },
     { id: 'student', label: '🎓 學生', tone: '展示學習成果、同儕分享' },
