@@ -71,7 +71,7 @@
       } else if (response.status === 403) {
         throw new Error('API Key 權限不足或已被停用，請確認 Key 的有效性');
       } else if (response.status === 429) {
-        throw new Error('API 請求次數超過限制，請稍後再試');
+        throw new Error('⏱️ API 請求次數超過限制（每分鐘最多 15 次）。請等待 1 分鐘後重試，或考慮升級到付費版本以獲得更高配額。');
       } else if (response.status >= 500) {
         throw new Error('Gemini API 伺服器錯誤，請稍後重試');
       }

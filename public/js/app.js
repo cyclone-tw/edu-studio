@@ -410,8 +410,16 @@
     return '';
   }
 
+  var isGenerating = false; // Prevent double-click
+
   function initGenerateButton() {
     dom.btnGenerate.addEventListener('click', async function () {
+      // Prevent double-click
+      if (isGenerating) {
+        showToast('正在生成中，請稍候...', 'info');
+        return;
+      }
+
       // Validate API key
       if (!state.apiKey) {
         showToast('請先設定 Gemini API Key', 'error');
@@ -425,6 +433,8 @@
         return;
       }
 
+      isGenerating = true;
+      dom.btnGenerate.disabled = true;
       showLoading('生成中，請稍候...');
 
       try {
@@ -466,10 +476,14 @@
         }
 
         hideLoading();
+        isGenerating = false;
+        dom.btnGenerate.disabled = false;
         goToStep(4);
         showToast('簡報生成完成！', 'success');
       } catch (err) {
         hideLoading();
+        isGenerating = false;
+        dom.btnGenerate.disabled = false;
         showToast('生成失敗：' + (err.message || err), 'error');
         console.error('[Generate Error]', err);
       }
