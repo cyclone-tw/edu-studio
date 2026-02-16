@@ -150,6 +150,7 @@
     };
 
     var prompt = '你是一位專業的簡報架構師，擅長根據素材和情境設計出最佳簡報結構。\n\n'
+      + '⚠️ 【最重要的規則】你必須產生恰好 ' + state.slideCount + ' 頁投影片，不多不少。slides 陣列長度必須是 ' + state.slideCount + '。\n\n'
       + '## 簡報設定\n\n'
       + '### 簡報者角色\n'
       + '- 角色：' + roleLabel + '\n'
@@ -162,7 +163,7 @@
       + '### 視覺風格\n'
       + '- 風格：' + styleLabel + '\n\n'
       + '### 其他參數\n'
-      + '- 投影片數量：' + state.slideCount + ' 頁\n'
+      + '- ⚠️ 投影片數量：必須恰好 ' + state.slideCount + ' 頁（這是硬性要求）\n'
       + '- 語言：' + (languageDesc[state.language] || state.language) + '\n'
       + '- 互動程度：' + (interactionDesc[state.interactionLevel] || state.interactionLevel) + '\n';
 
@@ -204,7 +205,7 @@
       + '    }\n'
       + '  ]\n'
       + '}\n\n'
-      + '請產生恰好 ' + state.slideCount + ' 頁投影片。';
+      + '⚠️ 再次提醒：slides 陣列必須恰好包含 ' + state.slideCount + ' 個元素，這是最重要的硬性要求。';
 
     return await callGemini(state.apiKey, prompt);
   }
@@ -220,13 +221,14 @@
       throw new Error('請先設定 Gemini API Key');
     }
 
-    var prompt = '你是一位簡報分段專家。請將以下課文依照段落邏輯，分配到 '
-      + state.slideCount + ' 張投影片中。\n\n'
+    var prompt = '你是一位簡報分段專家。\n\n'
+      + '⚠️ 【最重要的規則】你必須將課文分配到恰好 ' + state.slideCount + ' 頁投影片中，不多不少。slides 陣列長度必須是 ' + state.slideCount + '。\n\n'
       + '嚴格規則：\n'
-      + '1. 課文原文「一字不改」「一字不漏」\n'
-      + '2. 將所有文字完整分配，不可遺漏任何字\n'
-      + '3. 根據段落、語意斷點合理分配\n'
-      + '4. 每頁的文字量盡量均勻\n\n'
+      + '1. ⚠️ 投影片數量：必須恰好 ' + state.slideCount + ' 頁（這是硬性要求，第 1 頁為標題頁，其餘為內容頁）\n'
+      + '2. 課文原文「一字不改」「一字不漏」\n'
+      + '3. 將所有文字完整分配，不可遺漏任何字\n'
+      + '4. 根據段落、語意斷點合理分配\n'
+      + '5. 每頁的文字量盡量均勻\n\n'
       + '輸出 JSON 格式：\n'
       + '{\n'
       + '  "title": "根據課文內容產生的標題",\n'
@@ -245,7 +247,8 @@
       + '    }\n'
       + '  ]\n'
       + '}\n\n'
-      + '課文內容：\n' + text;
+      + '課文內容：\n' + text + '\n\n'
+      + '請將以上課文分配到恰好 ' + state.slideCount + ' 頁投影片中。';
 
     var result = await callGemini(state.apiKey, prompt);
 
