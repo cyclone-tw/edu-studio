@@ -74,6 +74,9 @@
         xhr.open('POST', '/api/pdf-to-images');
         xhr.responseType = 'blob';
 
+        // Set timeout to 5 minutes (300000ms) for large PDFs
+        xhr.timeout = 300000;
+
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
             const pct = Math.round((e.loaded / e.total) * 50); // Upload is 0-50%
@@ -82,10 +85,15 @@
           }
         };
 
+        xhr.upload.onloadend = () => {
+          progressBar.style.width = '50%';
+          progressText.textContent = '上傳完成，開始轉換...';
+        };
+
         xhr.onprogress = (e) => {
           // Download progress 50-90%
           progressBar.style.width = '70%';
-          progressText.textContent = '轉換中...';
+          progressText.textContent = '轉換中... 這可能需要幾分鐘';
         };
 
         xhr.onload = () => {
@@ -108,7 +116,9 @@
           }
         };
 
-        xhr.onerror = () => reject(new Error('網路錯誤'));
+        xhr.onerror = () => reject(new Error('網路錯誤，請檢查連線'));
+        xhr.ontimeout = () => reject(new Error('處理超時（5分鐘），請嘗試較小的 PDF 檔案'));
+
         xhr.send(formData);
       });
 
