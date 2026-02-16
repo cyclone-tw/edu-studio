@@ -64,7 +64,7 @@
           generationConfig: {
             temperature: 0.7,
             topP: 0.9,
-            maxOutputTokens: 8192,
+            maxOutputTokens: 65536,
             responseMimeType: 'application/json'
           }
         })
@@ -107,9 +107,25 @@
     try {
       return JSON.parse(text);
     } catch (parseErr) {
-      throw new Error('AI 回應格式解析失敗，請重新生成');
+      // Try to fix truncated JSON by closing open brackets
+      try {
+        var fixed = text;
+        // Remove trailing incomplete string/value
+        fixed = fixed.replace(/,\s*"[^"]*$/, '');
+        fixed = fixed.replace(/,\s*$/, '');
+        // Count and close open brackets
+        var opens = (fixed.match(/\[/g) || []).length - (fixed.match(/\]/g) || []).length;
+        var braces = (fixed.match(/\{/g) || []).length - (fixed.match(/\}/g) || []).length;
+        for (var ci = 0; ci < opens; ci++) fixed += ']';
+        for (var bi = 0; bi < braces; bi++) fixed += '}';
+        console.warn('[Gemini] JSON truncated, attempted auto-fix');
+        return JSON.parse(fixed);
+      } catch (fixErr) {
+        console.error('[Gemini] Raw response:', text.substring(0, 500));
+        throw new Error('AI 回應格式解析失敗，請重新生成');
+      }
     } finally {
-      isCallingGemini = false; // Always reset the flag
+      isCallingGemini = false;
     }
   }
 
