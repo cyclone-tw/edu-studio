@@ -545,12 +545,17 @@
           // Update yamlPreview
           if (dom.yamlPreview) dom.yamlPreview.value = yamlString;
 
-          // Load outline into editor
-          if (typeof OutlineEditor !== 'undefined' && result) {
+          // Load outline into editor with full document structure
+          if (typeof OutlineEditor !== 'undefined' && yamlString) {
             try {
-              // Parse result to get slides array
-              var slides = Array.isArray(result) ? result : (result.slides || []);
-              OutlineEditor.loadOutline(slides);
+              // Parse YAML back to get full document structure
+              var fullDoc = jsyaml.load(yamlString);
+              if (fullDoc && fullDoc.slides) {
+                OutlineEditor.loadOutline(fullDoc);
+              } else if (Array.isArray(result)) {
+                // Fallback: if no document structure, just load slides
+                OutlineEditor.loadOutline(result);
+              }
             } catch (outlineErr) {
               console.warn('[OutlineEditor] Load failed:', outlineErr);
             }

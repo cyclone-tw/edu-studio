@@ -9,6 +9,7 @@
   // ──────────────────────────────────────────────
   // Module State
   // ──────────────────────────────────────────────
+  var fullDocument = null; // Complete YAML document with metadata
   var outlineData = []; // Array of slide objects
   var containerEl = null;
   var previewEl = null;
@@ -33,10 +34,29 @@
 
   /**
    * Load outline data and render cards
-   * @param {Array} slides - Array of slide objects
+   * @param {Array|Object} data - Array of slide objects OR full document with metadata
+   * @param {Object} document - Optional full document structure (for backward compatibility)
    */
-  function loadOutline(slides) {
-    outlineData = slides || [];
+  function loadOutline(data, document) {
+    // Support both new format (full document) and old format (just slides array)
+    if (document) {
+      // New format: data is slides array, document is full structure
+      fullDocument = document;
+      outlineData = data || [];
+    } else if (Array.isArray(data)) {
+      // Old format: just slides array
+      fullDocument = null;
+      outlineData = data || [];
+    } else if (data && data.slides) {
+      // New format: data is full document
+      fullDocument = data;
+      outlineData = data.slides || [];
+    } else {
+      // Fallback
+      fullDocument = null;
+      outlineData = [];
+    }
+
     renderCards();
     syncToPreview();
   }
@@ -213,11 +233,32 @@
     if (!previewEl) return;
 
     try {
-      var yamlString = jsyaml.dump(outlineData, {
-        indent: 2,
-        lineWidth: -1,
-        noRefs: true
-      });
+      var yamlString;
+
+      if (fullDocument) {
+        // Generate complete YAML with metadata
+        var doc = {
+          metadata: fullDocument.metadata || {},
+          presentation_strategy: fullDocument.presentation_strategy || {},
+          slides: outlineData,
+          appendix: fullDocument.appendix || {}
+        };
+
+        yamlString = '# NBLM Presentation Blueprint\n' + jsyaml.dump(doc, {
+          indent: 2,
+          lineWidth: -1,
+          noRefs: true,
+          quotingType: '"'
+        });
+      } else {
+        // Fallback: just dump slides array
+        yamlString = jsyaml.dump(outlineData, {
+          indent: 2,
+          lineWidth: -1,
+          noRefs: true
+        });
+      }
+
       previewEl.value = yamlString;
     } catch (err) {
       console.error('Failed to generate YAML:', err);
