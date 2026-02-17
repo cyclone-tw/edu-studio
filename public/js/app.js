@@ -401,6 +401,8 @@
   // 7. File Upload — Drag & Drop
   // ──────────────────────────────────────────────
 
+  var pendingReads = 0; // Track in-flight FileReader operations
+
   var ALLOWED_TYPES = {
     'application/pdf': 'PDF',
     'text/plain': 'TXT',
@@ -442,7 +444,10 @@
     dropZoneEl.addEventListener('dragleave', function (e) {
       e.preventDefault();
       e.stopPropagation();
-      dropZoneEl.classList.remove('drop-zone-hover');
+      // Only remove hover if leaving the drop zone entirely (not entering a child)
+      if (!dropZoneEl.contains(e.relatedTarget)) {
+        dropZoneEl.classList.remove('drop-zone-hover');
+      }
     });
 
     dropZoneEl.addEventListener('drop', function (e) {
@@ -479,6 +484,9 @@
 
       // Read file
       (function (f, mime) {
+        pendingReads++;
+        if (dom.btnGenerate) dom.btnGenerate.disabled = true;
+
         if (mime === 'text/plain') {
           // TXT: read as text, append to textarea
           var reader = new FileReader();
@@ -494,6 +502,19 @@
               textarea.value = existing + (existing ? '\n\n' : '') + ev.target.result;
             }
             showToast('已載入 ' + f.name + ' 的文字內容', 'success');
+            pendingReads--;
+            if (pendingReads <= 0 && !isGenerating) {
+              pendingReads = 0;
+              if (dom.btnGenerate) dom.btnGenerate.disabled = false;
+            }
+          };
+          reader.onerror = function () {
+            showToast('檔案 ' + f.name + ' 讀取失敗', 'error');
+            pendingReads--;
+            if (pendingReads <= 0 && !isGenerating) {
+              pendingReads = 0;
+              if (dom.btnGenerate) dom.btnGenerate.disabled = false;
+            }
           };
           reader.readAsText(f, 'UTF-8');
         } else {
@@ -512,9 +533,19 @@
             });
 
             renderFileTags(fileTagsEl, state[filesKey], filesKey);
+            pendingReads--;
+            if (pendingReads <= 0 && !isGenerating) {
+              pendingReads = 0;
+              if (dom.btnGenerate) dom.btnGenerate.disabled = false;
+            }
           };
           reader.onerror = function () {
             showToast('檔案 ' + f.name + ' 讀取失敗', 'error');
+            pendingReads--;
+            if (pendingReads <= 0 && !isGenerating) {
+              pendingReads = 0;
+              if (dom.btnGenerate) dom.btnGenerate.disabled = false;
+            }
           };
           reader.readAsDataURL(f);
         }
@@ -538,9 +569,21 @@
         ? Math.round(f.size / 1024) + 'KB'
         : (f.size / (1024 * 1024)).toFixed(1) + 'MB';
 
-      tag.innerHTML = '<span class="file-tag-icon">' + icon + '</span>'
-        + '<span class="file-tag-name">' + f.name + '</span>'
-        + '<span class="file-tag-size">' + sizeStr + '</span>';
+      var iconSpan = document.createElement('span');
+      iconSpan.className = 'file-tag-icon';
+      iconSpan.textContent = icon;
+
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'file-tag-name';
+      nameSpan.textContent = f.name;
+
+      var sizeSpan = document.createElement('span');
+      sizeSpan.className = 'file-tag-size';
+      sizeSpan.textContent = sizeStr;
+
+      tag.appendChild(iconSpan);
+      tag.appendChild(nameSpan);
+      tag.appendChild(sizeSpan);
 
       var removeBtn = document.createElement('button');
       removeBtn.className = 'file-tag-remove';
@@ -646,6 +689,12 @@
       // Prevent double-click
       if (isGenerating) {
         showToast('正在生成中，請稍候...', 'info');
+        return;
+      }
+
+      // Prevent clicking while files are still being read
+      if (pendingReads > 0) {
+        showToast('檔案讀取中，請稍候...', 'info');
         return;
       }
 
