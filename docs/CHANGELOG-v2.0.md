@@ -1,4 +1,84 @@
-# NBLM YAML Generator - v2.0 更新摘要
+# NBLM YAML Generator - 更新日誌
+
+---
+
+## v2.1.0 - NotebookLM 排版優化 & 編輯器增強
+
+### 發布日期
+2026-02-17
+
+### 重大更新
+
+#### 1. 卡片編輯器全面改版
+- 頁面類型分類：封面頁（COVER）、內容頁（CONTENT）、結尾頁（CLOSING），以彩色標籤區分
+- 六欄位編輯：title、subtitle（封面專用）、key_points（內容頁）、script、visual_description、layout_style
+- 講者講綱（script）在編輯器可見可編輯，但 YAML 輸出自動排除（不影響 NotebookLM）
+- `addField()` 共用元件，減少重複程式碼
+
+#### 2. NotebookLM 排版優化
+**問題**：中文排版關鍵字（如「圖片左+文字右」）無法被 NotebookLM 有效執行
+
+**解法**：
+- `layout_style` 改用英文關鍵字（如 `left-aligned title, text on left visual on right, asymmetrical split`）
+- `system_instructions` 以英文撰寫，包含 NotebookLM 有效格式：
+  - `[Absolutely Prohibited Output Format Rules]` - 禁止 Markdown 符號
+  - `[Typography Hierarchy]` - 字型大小跳躍比 5:1、標題佔 25-40% 面積
+  - `[Layout Rules]` - 左對齊、大量留白、禁止置中排版
+- `global_design` 新增：
+  - `color_palette`（bg/text/accent hex codes）
+  - `common_layout_rules`（陣列格式排版規則）
+  - `tone`（英文風格描述）
+  - `jump_ratio`（字型大小跳躍比）
+
+#### 3. YAML 格式升級
+- 輸出格式改為 `presentation_data` 結構（對齊阿亮校長的 NBLM 工具架構）
+- `buildYaml()` 回傳 JavaScript 物件（非字串），方便後續處理
+- 新增 `toNblmYaml(doc)` 函式：深拷貝後刪除 script 欄位，輸出純淨 YAML
+- 新增 `buildMarkdownOutline(slides, docTitle)` 函式：生成含所有欄位的 Markdown 大綱
+
+#### 4. 16 種視覺風格完整色彩配置
+每種風格（`NBLM_STYLE_MAP`）現包含：
+- `style_name` - 風格識別名稱
+- `visual_keywords` - 中文視覺關鍵字
+- `title_font` / `body_font` - 字型配置
+- `bg` / `text` / `accent` - Hex 色碼
+- `tone` - 英文風格描述（用於 NotebookLM image prompt）
+
+#### 5. Gemini Prompt 更新
+三種模式（智慧生成、課文忠實、大綱轉檔）的 prompt 全面更新：
+- 要求輸出 `layout_style` 使用英文排版描述
+- 要求 `visual_description` 具體描述場景、物件、構圖
+- 統一 JSON 輸出格式為 6 欄位
+
+#### 6. UI 調整
+- 操作按鈕（複製 YAML、下載 YAML、下載 MD）移至編輯器上方居中
+- 編輯器面板固定高度 520px，支援滾動
+- 新增頁面類型標籤樣式（綠/藍/橘）
+- 新增 CSS 變數 `--radius-md`、`--radius-lg`
+
+### 技術架構
+
+#### 資料流
+```
+Gemini JSON (6欄位) → buildYaml() → 完整物件（含 script）
+                                      ├→ toNblmYaml() → YAML 字串（無 script）→ 右側預覽 / 複製 / 下載 YAML
+                                      ├→ buildMarkdownOutline() → MD 字串（含 script）→ 下載 MD
+                                      └→ OutlineEditor.loadOutline() → 左側卡片編輯器
+```
+
+#### 修改檔案
+| 檔案 | 變更內容 |
+|------|---------|
+| `public/js/gemini.js` | 三種 prompt 更新為 6 欄位格式，要求英文 layout_style |
+| `public/js/yaml-engine.js` | NBLM_STYLE_MAP 擴充、buildYaml 改回物件、新增 toNblmYaml/buildMarkdownOutline |
+| `public/js/outline-editor.js` | 完全重寫，支援頁面類型分類和 6 欄位編輯 |
+| `public/js/app.js` | 更新生成流程，整合新 API，新增 extractDocTitle |
+| `public/index.html` | Step 4 按鈕重新排列，移除 YAML 面板內複製按鈕 |
+| `public/css/styles.css` | 固定高度面板、頁面類型標籤、新增 CSS 變數 |
+
+---
+
+# v2.0 更新摘要
 
 ## 發布日期
 2026-02-16
@@ -131,12 +211,13 @@ git log --oneline --grep="feat:" --grep="fix:" --since="2026-02-16"
 
 ## 下一步計畫
 - [ ] 新增拖曳排序功能
-- [ ] 支援匯出多種格式
+- [x] 支援匯出多種格式（v2.1 已新增 YAML + MD）
 - [ ] 整合更多 AI 模型選項
 - [ ] 效能優化與快取機制
+- [ ] 單頁重新生成功能
+- [ ] 自訂風格色彩配置
 
 ---
 
-**版本**：2.0.0
-**日期**：2026-02-16
-**作者**：Claude Sonnet 4.5 + User
+**最新版本**：2.1.0
+**最後更新**：2026-02-17

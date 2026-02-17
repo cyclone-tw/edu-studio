@@ -18,6 +18,8 @@
   --info: #3498db;
   --radius: 12px;
   --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
   --transition: 0.3s ease;
   --font: 'Noto Sans TC', sans-serif;
   --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
@@ -646,8 +648,22 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  min-height: 400px;
+  height: 520px;
   margin-bottom: 8px;
+}
+
+/* Editor action buttons */
+.editor-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.btn-action-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .editor-pane,
@@ -730,13 +746,13 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  height: 100%;
 }
 
 .outline-editor {
   flex: 1;
   padding: 16px;
   overflow-y: auto;
-  min-height: 360px;
 }
 
 .editor-placeholder {
@@ -755,9 +771,9 @@ body {
   font-size: 0.85rem;
   line-height: 1.7;
   resize: none;
-  min-height: 360px;
   background: var(--bg-card);
   color: var(--text-primary);
+  overflow-y: auto;
 }
 
 .yaml-preview-textarea:focus {
@@ -800,11 +816,12 @@ body {
   .editor-split {
     grid-template-columns: 1fr;
     gap: 12px;
+    height: auto;
   }
 
-  .outline-editor,
-  .yaml-preview-textarea {
-    min-height: 300px;
+  .outline-editor-pane,
+  .yaml-preview-pane {
+    height: 400px;
   }
 }
 
@@ -894,6 +911,31 @@ body {
   font-size: 0.85rem;
   opacity: 0.85;
   background: rgba(255, 255, 255, 0.02);
+}
+
+/* Slide type badges */
+.outline-card-type {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.outline-card-type-cover {
+  background: rgba(0, 212, 170, 0.15);
+  color: #00d4aa;
+}
+
+.outline-card-type-content {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.outline-card-type-closing {
+  background: rgba(255, 165, 0, 0.15);
+  color: #ffa500;
 }
 
 /* Responsive */
@@ -1652,7 +1694,12 @@ body {
 
   .editor-split {
     grid-template-columns: 1fr;
-    min-height: auto;
+    height: auto;
+  }
+
+  .editor-actions {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .editor-textarea {
@@ -1662,10 +1709,6 @@ body {
   .step-nav {
     flex-wrap: wrap;
     gap: 10px;
-  }
-
-  .export-buttons {
-    flex-wrap: wrap;
   }
 
   .pdf-results-grid {

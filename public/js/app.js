@@ -516,10 +516,17 @@
 
         // Build NotebookLM-compatible YAML from JSON result
         if (result) {
+          var doc;
           var yamlString;
           try {
             if (typeof window.buildYaml === 'function') {
-              yamlString = window.buildYaml(result, state);
+              doc = window.buildYaml(result, state);
+              // Generate NBLM YAML (without script) for preview
+              if (typeof window.toNblmYaml === 'function') {
+                yamlString = window.toNblmYaml(doc);
+              } else {
+                yamlString = jsyaml.dump(doc);
+              }
             } else {
               yamlString = jsyaml.dump(result);
             }
@@ -528,24 +535,16 @@
             yamlString = jsyaml.dump(result);
           }
 
-          // Update yamlPreview
+          // Update YAML preview
           if (dom.yamlPreview) dom.yamlPreview.value = yamlString;
 
-          // Load outline into editor with full document structure
-          if (typeof OutlineEditor !== 'undefined' && yamlString) {
+          // Load full document (with script) into outline editor
+          if (typeof OutlineEditor !== 'undefined' && doc) {
             try {
-              var fullDoc = jsyaml.load(yamlString);
-              if (fullDoc) {
-                OutlineEditor.loadOutline(fullDoc);
-              }
+              OutlineEditor.loadOutline(doc);
             } catch (outlineErr) {
               console.warn('[OutlineEditor] Load failed:', outlineErr);
             }
-          }
-
-          // Trigger preview if renderPreview is available
-          if (typeof window.renderPreview === 'function') {
-            window.renderPreview(yamlString);
           }
         }
 
@@ -608,6 +607,20 @@
     return datePrefix + '-' + title + '.' + extension;
   }
 
+  function extractDocTitle() {
+    try {
+      var yamlContent = dom.yamlPreview.value;
+      if (!yamlContent) return '簡報大綱';
+      var data = jsyaml.load(yamlContent);
+      if (data && data.presentation_data) {
+        return data.presentation_data.suggested_filename || '簡報大綱';
+      }
+      return '簡報大綱';
+    } catch (e) {
+      return '簡報大綱';
+    }
+  }
+
   function initExportButtons() {
     dom.btnDownloadYaml.addEventListener('click', function () {
       var content = dom.yamlPreview.value;
@@ -615,19 +628,23 @@
         showToast('沒有可下載的內容', 'error');
         return;
       }
-      var filename = generateFilename('txt');
-      downloadFile(content, filename, 'text/plain');
-      showToast('TXT 已下載', 'success');
+      var filename = generateFilename('yaml');
+      downloadFile(content, filename, 'text/yaml');
+      showToast('YAML 已下載', 'success');
     });
 
     dom.btnDownloadMd.addEventListener('click', function () {
-      var yamlContent = dom.yamlPreview.value;
-      if (!yamlContent) {
+      if (typeof OutlineEditor === 'undefined' || typeof window.buildMarkdownOutline !== 'function') {
         showToast('沒有可下載的內容', 'error');
         return;
       }
-
-      var mdContent = yamlToMarkdownOutline(yamlContent);
+      var slides = OutlineEditor.getOutline();
+      if (!slides || slides.length === 0) {
+        showToast('沒有可下載的內容', 'error');
+        return;
+      }
+      var title = extractDocTitle();
+      var mdContent = window.buildMarkdownOutline(slides, title);
       var filename = generateFilename('md');
       downloadFile(mdContent, filename, 'text/markdown');
       showToast('Markdown 大綱已下載', 'success');
@@ -688,63 +705,6 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }
-
-  /**
-   * Convert YAML content to a Markdown outline.
-   * Handles the expected slide structure gracefully.
-   */
-  function yamlToMarkdownOutline(yamlStr) {
-    try {
-      var data = jsyaml.load(yamlStr);
-      var lines = ['# 簡報大綱\n'];
-
-      if (!data) return yamlStr;
-
-      // Handle case where data is an array of slides
-      var slides = Array.isArray(data) ? data : (data.slides || []);
-
-      if (slides.length === 0) {
-        // Fallback: just return the raw YAML wrapped in a code block
-        return '# 簡報大綱\n\n```yaml\n' + yamlStr + '\n```';
-      }
-
-      slides.forEach(function (slide, idx) {
-        var title = slide.title || slide.heading || ('Slide ' + (idx + 1));
-        lines.push('## ' + (idx + 1) + '. ' + title);
-
-        // Handle key_points (AI mode)
-        if (slide.key_points && Array.isArray(slide.key_points) && slide.key_points.length > 0) {
-          slide.key_points.forEach(function (point) {
-            lines.push('- ' + point);
-          });
-        }
-
-        // Handle content (textbook mode)
-        if (slide.content) {
-          if (Array.isArray(slide.content)) {
-            slide.content.forEach(function (item) {
-              lines.push('- ' + item);
-            });
-          } else {
-            lines.push(slide.content);
-          }
-        }
-
-        // Handle speaker_notes or notes
-        var notes = slide.speaker_notes || slide.notes;
-        if (notes) {
-          lines.push('\n> ' + notes);
-        }
-
-        lines.push('');
-      });
-
-      return lines.join('\n');
-    } catch (e) {
-      // If YAML parse fails, return raw content
-      return '# 簡報大綱\n\n```yaml\n' + yamlStr + '\n```';
-    }
   }
 
   // ──────────────────────────────────────────────

@@ -269,16 +269,42 @@
     <!-- ============================== -->
     <section class="step-panel hidden" id="step4Panel" data-step="4">
       <h2 class="panel-title">預覽與匯出</h2>
-      <p class="panel-desc">編輯大綱並預覽 YAML 內容</p>
+      <p class="panel-desc">編輯大綱內容，預覽 NotebookLM YAML</p>
+
+      <!-- Action buttons centered above editor -->
+      <div class="editor-actions">
+        <button class="btn btn-primary btn-action-copy" id="btnCopyYaml" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          複製 YAML
+        </button>
+        <button class="btn btn-secondary" id="btnDownloadYaml" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          下載 YAML
+        </button>
+        <button class="btn btn-secondary" id="btnDownloadMd" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          下載 MD 大綱
+        </button>
+      </div>
 
       <div class="editor-split">
         <!-- Left: Outline Editor -->
         <div class="outline-editor-pane">
           <div class="editor-pane-header">
-            <span>📝 大綱編輯器</span>
+            <span>📝 簡報大綱編輯器</span>
           </div>
           <div class="outline-editor" id="outlineEditor">
-            <!-- Cards will be rendered here by outline-editor.js -->
             <p class="editor-placeholder">生成後顯示大綱編輯器...</p>
           </div>
         </div>
@@ -286,14 +312,7 @@
         <!-- Right: YAML Preview -->
         <div class="yaml-preview-pane">
           <div class="editor-pane-header">
-            <span>📄 YAML 預覽</span>
-            <button class="btn btn-sm btn-copy" id="btnCopyYaml" type="button" title="複製 YAML">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-              複製 YAML
-            </button>
+            <span>📄 YAML 預覽 (NotebookLM 格式)</span>
           </div>
           <textarea class="form-textarea yaml-preview-textarea" id="yamlPreview"
             placeholder="YAML 預覽將顯示在這裡..." spellcheck="false" readonly></textarea>
@@ -308,7 +327,7 @@
             <div class="notebooklm-step-number">1</div>
             <div class="notebooklm-step-content">
               <strong>複製 YAML</strong>
-              <p>點擊右上角「複製 YAML」按鈕，複製 NotebookLM 專用格式</p>
+              <p>點擊上方「複製 YAML」按鈕，複製 NotebookLM 專用格式</p>
             </div>
           </div>
           <div class="notebooklm-step">
@@ -330,24 +349,6 @@
 
       <div class="step-nav">
         <button class="btn btn-secondary" id="step4Prev" type="button">上一步</button>
-        <div class="export-buttons">
-          <button class="btn btn-primary" id="btnDownloadYaml" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            下載 TXT
-          </button>
-          <button class="btn btn-secondary" id="btnDownloadMd" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            下載 MD 大綱
-          </button>
-        </div>
       </div>
     </section>
 

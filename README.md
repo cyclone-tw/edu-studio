@@ -2,7 +2,7 @@
 
 > 基於 Google Gemini AI 的智慧簡報大綱生成工具，專為 NotebookLM 製作簡報而設計
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/yourusername/nblm-gem)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/yourusername/nblm-gem)
 [![License](https://img.shields.io/badge/license-ISC-green.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-20.x-brightgreen.svg)](https://nodejs.org/)
 
@@ -14,10 +14,12 @@ NBLM 簡報生成助手是一個創新的工具，協助教師、講師和內容
 
 - 🤖 **AI 智慧生成** - 基於 Google Gemini 2.5 Flash，快速且準確
 - 📝 **三種生成模式** - 智慧生成 / 現有大綱轉檔 / 教科書切片
-- ✏️ **即時編輯** - 卡片式大綱編輯器，左側編輯、右側預覽
-- 📄 **完整 YAML** - 包含 metadata、presentation_strategy、slides、appendix
-- 📚 **NotebookLM 整合** - 一鍵下載 TXT，直接上傳到 NotebookLM
-- 🎨 **客製化設定** - 簡報者角色、受眾、情境、視覺風格
+- ✏️ **豐富卡片編輯器** - 封面/內容/結尾頁分類，支援標題、副標題、重點、講綱、視覺描述、排版風格六欄位
+- 📄 **NotebookLM 專用 YAML** - `presentation_data` 格式，含 `system_instructions`、`global_design`、`color_palette`
+- 📋 **一鍵複製 YAML** - 複製後直接貼入 NotebookLM 筆記本
+- 📥 **多格式下載** - YAML 檔案 + Markdown 大綱（含講者講綱）
+- 🎨 **16 種視覺風格** - 手繪蠟筆、Q版可愛、水彩暈染、霓虹暗黑等，每種含完整色彩配置
+- 🎯 **NotebookLM 排版優化** - 英文排版關鍵字、Hex 色碼、Typography Hierarchy 確保排版被正確執行
 - 📱 **響應式設計** - 支援桌面、平板、手機
 - 🔒 **本地儲存** - API Key 安全儲存在瀏覽器
 
@@ -79,15 +81,16 @@ docker run -p 3000:3000 nblm-gem
 - 每段生成摘要與重點
 
 ### 3. 編輯大綱
-- 左側：卡片式編輯器，可修改標題和內容
-- 右側：即時 YAML 預覽
+- 左側：豐富卡片編輯器，依頁面類型（封面/內容/結尾）顯示不同欄位
+- 右側：即時 YAML 預覽（自動排除講者講綱，僅顯示 NotebookLM 所需內容）
 - 300ms 防抖動自動同步
 
 ### 4. 下載與使用
-- 點擊「複製 YAML」或「下載 TXT」
+- 點擊「複製 YAML」直接複製到剪貼簿
 - 前往 [NotebookLM](https://notebooklm.google.com)
-- 建立筆記本並上傳 TXT 檔
-- 生成專業簡報
+- 建立筆記本 → 新增來源 → 貼上複製的文字 或 上傳 YAML 檔
+- 選擇「產生簡報」即可生成專業簡報
+- 另可下載 Markdown 大綱（含講者講綱）作為教學備忘
 
 ## 🎯 適用場景
 
@@ -146,6 +149,15 @@ nblm-gem/
 ```
 
 ## 🔄 版本歷程
+
+### v2.1.0 (2026-02-17) - NotebookLM 排版優化 & 編輯器增強
+- ✨ 卡片編輯器全面改版：封面/內容/結尾頁分類，支援六欄位編輯
+- ✨ NotebookLM 排版優化：英文排版關鍵字、Hex 色碼、Typography Hierarchy
+- ✨ YAML 格式升級為 `presentation_data` 結構，含 `system_instructions` 和 `global_design`
+- ✨ 16 種視覺風格各配備完整色彩配置（bg/text/accent hex codes）
+- ✨ 新增一鍵複製 YAML + 下載 YAML/MD 按鈕
+- ✨ 講者講綱（script）在編輯器可見、YAML 輸出自動排除
+- 🔧 Gemini prompt 全面更新，要求具體視覺描述與英文排版指令
 
 ### v2.0.0 (2026-02-16) - 編輯器重大改版
 - ✨ 新增使用說明彈窗
