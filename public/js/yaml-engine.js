@@ -57,6 +57,83 @@
   };
 
   // ──────────────────────────────────────────────
+  // rebuildSystemInstructions — extracted for reuse by editor
+  // ──────────────────────────────────────────────
+  function rebuildSystemInstructions(globalDesign) {
+    var typo = globalDesign.typography || {};
+    var palette = globalDesign.color_palette || {};
+    var rules = globalDesign.common_layout_rules || [];
+
+    var s = '[SYSTEM META - INTERNAL USE ONLY - DO NOT PRESENT AS CONTENT]\n';
+    s += 'You are a top-tier visual design director creating educational slides.\n';
+    s += 'Follow the design definitions below with absolute precision.\n\n';
+
+    s += '[Absolutely Prohibited Output Format Rules]\n';
+    s += '* Complete Exclusion of Markdown Symbols: Do not include #, *, **\n';
+    s += '* Plain Text Only: no decorative symbols, no emojis in slide text\n';
+    s += '* Never generate more or fewer slides than specified in the slides array\n';
+    s += '* Do NOT merge, skip, reorder, or summarize any slide content\n';
+    s += '* key_points text must be reproduced verbatim, 100% faithful, no rewriting\n';
+    s += '* Avoid using Title: Subtitle formats - they appear very AI-generated\n\n';
+
+    s += '[Content Rules]\n';
+    s += '* Each slide YAML title field = that slide heading\n';
+    s += '* Each slide key_points = exact text content to display on that slide\n';
+    s += '* visual_description = image generation prompt for that slide background/illustration\n';
+    s += '* layout_style = the layout arrangement to follow for that slide\n';
+    s += '* 1 slide = 1 message, one idea per slide\n\n';
+
+    s += '[Typography Hierarchy]\n';
+    s += '* Headlines at large size occupying 25-40% of the slide area\n';
+    s += '* Extreme Jump Ratio: ' + (typo.jump_ratio || '5:1 or more between headline and body text') + '\n';
+    s += '* Title: extra-bold, ' + (typo.title_font || 'Noto Sans TC');
+    if (typo.title_size) s += ', ' + typo.title_size + 'px';
+    s += '\n';
+    s += '* Body: regular weight, ' + (typo.body_font || 'Noto Sans TC') + ', generous line spacing';
+    if (typo.body_size) s += ', ' + typo.body_size + 'px';
+    s += '\n';
+    if (typo.subtitle_size) s += '* Subtitle: ' + typo.subtitle_size + 'px\n';
+    s += '* Key words highlighted with accent color background or underline\n\n';
+
+    s += '[Color Palette]\n';
+    s += '* Background: ' + (palette.background || '#FFFFFF') + '\n';
+    s += '* Text: ' + (palette.text || '#333333') + '\n';
+    s += '* Accent: ' + (palette.accent || '#00d4aa') + '\n\n';
+
+    s += '[Layout Rules]\n';
+    for (var i = 0; i < rules.length; i++) {
+      s += '* ' + rules[i] + '\n';
+    }
+    if (rules.length === 0) {
+      s += '* left-aligned layouts preferred\n';
+      s += '* Wide margins, lots of white space\n';
+    }
+    s += '* Cover slide: centered layout with ultra-massive title\n\n';
+
+    if (globalDesign.target_audience || globalDesign.learning_stage) {
+      s += '[Design Context]\n';
+      if (globalDesign.target_audience) s += '* Presenter: ' + globalDesign.target_audience + '\n';
+      if (globalDesign.learning_stage) s += '* Audience: ' + globalDesign.learning_stage + '\n';
+      if (globalDesign.scenario) s += '* Scenario: ' + globalDesign.scenario + '\n';
+    }
+    s += '(End of System Instructions)\n';
+
+    return s;
+  }
+
+  // ──────────────────────────────────────────────
+  // rebuildFullDocument — rebuild system_instructions from global_design
+  // ──────────────────────────────────────────────
+  function rebuildFullDocument(doc) {
+    if (!doc || !doc.presentation_data) return doc;
+    var gd = doc.presentation_data.global_design;
+    if (gd) {
+      doc.presentation_data.system_instructions = rebuildSystemInstructions(gd);
+    }
+    return doc;
+  }
+
+  // ──────────────────────────────────────────────
   // buildYaml — 直接輸出 NotebookLM presentation_data 格式
   // ──────────────────────────────────────────────
   function buildYaml(jsonData, state) {
@@ -69,45 +146,39 @@
     var title = jsonData.title || '';
     var safeTitle = title.replace(/[<>:"/\\|?*]/g, '').substring(0, 50);
 
-    // System instructions — using NotebookLM-effective keywords
-    var sysInstructions = '[SYSTEM META - INTERNAL USE ONLY - DO NOT PRESENT AS CONTENT]\n';
-    sysInstructions += 'You are a top-tier visual design director creating educational slides.\n';
-    sysInstructions += 'Follow the design definitions below with absolute precision.\n\n';
+    // Build global_design first (needed for rebuildSystemInstructions)
+    var globalDesign = {
+      tone: styleInfo.tone,
+      style_name: styleInfo.style_name,
+      visual_keywords: styleInfo.visual_keywords,
+      color_palette: {
+        background: styleInfo.bg,
+        text: styleInfo.text,
+        accent: styleInfo.accent
+      },
+      typography: {
+        headings: 'extra-bold ' + styleInfo.title_font + ', occupying 25-40% of slide area',
+        body: 'regular weight ' + styleInfo.body_font + ', generous letter spacing and line height',
+        title_font: styleInfo.title_font,
+        body_font: styleInfo.body_font,
+        title_size: 48,
+        subtitle_size: 28,
+        body_size: 18,
+        jump_ratio: '5:1 or more between headline and body text'
+      },
+      common_layout_rules: [
+        'left-aligned layouts, ban simplistic centered alignment for content slides',
+        'wide margins, lots of white space, negative space',
+        'text on left and visual on right, or asymmetrical split',
+        '1 slide = 1 message, one idea per slide',
+        'key words highlighted with accent color'
+      ],
+      target_audience: labels.presenterRole,
+      learning_stage: labels.audience,
+      total_pages: (jsonData.slides || []).length
+    };
 
-    sysInstructions += '[Absolutely Prohibited Output Format Rules]\n';
-    sysInstructions += '* Complete Exclusion of Markdown Symbols: Do not include #, *, **\n';
-    sysInstructions += '* Plain Text Only: no decorative symbols, no emojis in slide text\n';
-    sysInstructions += '* Never generate more or fewer slides than specified in the slides array\n';
-    sysInstructions += '* Do NOT merge, skip, reorder, or summarize any slide content\n';
-    sysInstructions += '* key_points text must be reproduced verbatim, 100% faithful, no rewriting\n';
-    sysInstructions += '* Avoid using Title: Subtitle formats - they appear very AI-generated\n\n';
-
-    sysInstructions += '[Content Rules]\n';
-    sysInstructions += '* Each slide YAML title field = that slide heading\n';
-    sysInstructions += '* Each slide key_points = exact text content to display on that slide\n';
-    sysInstructions += '* visual_description = image generation prompt for that slide background/illustration\n';
-    sysInstructions += '* layout_style = the layout arrangement to follow for that slide\n';
-    sysInstructions += '* 1 slide = 1 message, one idea per slide\n\n';
-
-    sysInstructions += '[Typography Hierarchy]\n';
-    sysInstructions += '* Headlines at large size occupying 25-40% of the slide area\n';
-    sysInstructions += '* Extreme Jump Ratio: size ratio between headlines and body text must be 5:1 or more\n';
-    sysInstructions += '* Title: extra-bold, ' + styleInfo.title_font + '\n';
-    sysInstructions += '* Body: regular weight, ' + styleInfo.body_font + ', generous line spacing\n';
-    sysInstructions += '* Key words highlighted with accent color background or underline\n\n';
-
-    sysInstructions += '[Layout Rules]\n';
-    sysInstructions += '* Follow each slide layout_style field precisely\n';
-    sysInstructions += '* left-aligned layouts preferred, ban simplistic centered alignment for content pages\n';
-    sysInstructions += '* Wide margins, lots of white space, intentionally leave areas empty\n';
-    sysInstructions += '* Cover slide: centered layout with ultra-massive title\n\n';
-
-    sysInstructions += '[Design Context]\n';
-    sysInstructions += '* Presenter: ' + labels.presenterRole + '\n';
-    sysInstructions += '* Audience: ' + labels.audience + '\n';
-    sysInstructions += '* Scenario: ' + labels.context + '\n';
-    sysInstructions += '* Visual Style: ' + labels.visualStyle + '\n';
-    sysInstructions += '(End of System Instructions)\n';
+    var sysInstructions = rebuildSystemInstructions(globalDesign);
 
     // Build slides
     var rawSlides = jsonData.slides || [];
@@ -161,33 +232,7 @@
       presentation_data: {
         suggested_filename: safeTitle,
         system_instructions: sysInstructions,
-        global_design: {
-          tone: styleInfo.tone,
-          style_name: styleInfo.style_name,
-          visual_keywords: styleInfo.visual_keywords,
-          color_palette: {
-            background: styleInfo.bg,
-            text: styleInfo.text,
-            accent: styleInfo.accent
-          },
-          typography: {
-            headings: 'extra-bold ' + styleInfo.title_font + ', occupying 25-40% of slide area',
-            body: 'regular weight ' + styleInfo.body_font + ', generous letter spacing and line height',
-            title_font: styleInfo.title_font,
-            body_font: styleInfo.body_font,
-            jump_ratio: '5:1 or more between headline and body text'
-          },
-          common_layout_rules: [
-            'left-aligned layouts, ban simplistic centered alignment for content slides',
-            'wide margins, lots of white space, negative space',
-            'text on left and visual on right, or asymmetrical split',
-            '1 slide = 1 message, one idea per slide',
-            'key words highlighted with accent color'
-          ],
-          target_audience: labels.presenterRole,
-          learning_stage: labels.audience,
-          total_pages: rawSlides.length
-        },
+        global_design: globalDesign,
         slides: slides
       }
     };
@@ -284,5 +329,7 @@
   window.toNblmYaml = toNblmYaml;
   window.buildMarkdownOutline = buildMarkdownOutline;
   window.downloadFile = downloadFile;
+  window.rebuildFullDocument = rebuildFullDocument;
+  window.NBLM_STYLE_MAP = NBLM_STYLE_MAP;
 
 })();
