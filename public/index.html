@@ -59,89 +59,45 @@
       <button class="mode-tab" data-mode="custom" type="button">完全自訂</button>
     </nav>
 
-    <!-- Step Progress Bar (visible in AI / textbook modes) -->
-    <div class="step-progress" id="stepProgress">
-      <div class="step-item active" data-step="1">
-        <div class="step-dot">1</div>
-        <span class="step-label">選擇維度</span>
-      </div>
-      <div class="step-line"></div>
-      <div class="step-item" data-step="2">
-        <div class="step-dot">2</div>
-        <span class="step-label">額外參數</span>
-      </div>
-      <div class="step-line"></div>
-      <div class="step-item" data-step="3">
-        <div class="step-dot">3</div>
-        <span class="step-label">輸入素材</span>
-      </div>
-      <div class="step-line"></div>
-      <div class="step-item" data-step="4">
-        <div class="step-dot">4</div>
-        <span class="step-label">預覽匯出</span>
-      </div>
-    </div>
-
     <!-- ============================== -->
-    <!-- Step 1: 選擇維度               -->
+    <!-- 簡報維度設定                     -->
     <!-- ============================== -->
-    <section class="step-panel" id="step1Panel" data-step="1">
-      <h2 class="panel-title">選擇簡報維度</h2>
-      <p class="panel-desc">從四個面向選擇最適合的組合，AI 將據此生成簡報</p>
-
-      <!-- 簡報者角色 -->
-      <div class="card-section">
-        <h3 class="card-section-title">簡報者角色</h3>
-        <div class="card-grid" id="roleCards">
-          <!-- Cards rendered by JS from presets.js -->
+    <section class="form-section" id="dimensionsSection">
+      <h2 class="section-title">簡報維度設定</h2>
+      <div class="dimension-grid">
+        <div class="form-group">
+          <label class="form-label" for="roleSelect">簡報者角色</label>
+          <select class="form-select" id="roleSelect">
+            <option value="">-- 請選擇 --</option>
+          </select>
         </div>
-      </div>
-
-      <!-- 受眾面向 -->
-      <div class="card-section">
-        <h3 class="card-section-title">受眾面向</h3>
-
-        <span class="category-badge category-edu">教育類</span>
-        <div class="card-grid" id="audienceCardsEdu">
-          <!-- Education audience cards rendered by JS -->
+        <div class="form-group">
+          <label class="form-label" for="audienceSelect">受眾面向</label>
+          <select class="form-select" id="audienceSelect">
+            <option value="">-- 請選擇 --</option>
+          </select>
         </div>
-
-        <span class="category-badge category-work">職場類</span>
-        <div class="card-grid" id="audienceCardsWork">
-          <!-- Work audience cards rendered by JS -->
+        <div class="form-group">
+          <label class="form-label" for="contextSelect">簡報場景</label>
+          <select class="form-select" id="contextSelect">
+            <option value="">-- 請選擇 --</option>
+          </select>
         </div>
-      </div>
-
-      <!-- 簡報場景 -->
-      <div class="card-section">
-        <h3 class="card-section-title">簡報場景</h3>
-        <div class="card-grid" id="scenarioCards">
-          <!-- Cards rendered by JS -->
+        <div class="form-group">
+          <label class="form-label" for="styleSelect">視覺風格</label>
+          <select class="form-select" id="styleSelect">
+            <option value="">-- 請選擇 --</option>
+          </select>
         </div>
-      </div>
-
-      <!-- 視覺風格 -->
-      <div class="card-section">
-        <h3 class="card-section-title">視覺風格</h3>
-        <div class="card-grid" id="styleCards">
-          <!-- Cards rendered by JS -->
-        </div>
-      </div>
-
-      <div class="step-nav">
-        <div></div>
-        <button class="btn btn-primary" id="step1Next" type="button">下一步</button>
       </div>
     </section>
 
     <!-- ============================== -->
-    <!-- Step 2: 額外參數               -->
+    <!-- 額外參數                         -->
     <!-- ============================== -->
-    <section class="step-panel hidden" id="step2Panel" data-step="2">
-      <h2 class="panel-title">額外參數設定</h2>
-      <p class="panel-desc">微調生成參數以獲得最佳結果</p>
-
-      <div class="form-grid">
+    <section class="form-section" id="paramsSection">
+      <h2 class="section-title">額外參數</h2>
+      <div class="params-row">
         <!-- 簡報頁數 -->
         <div class="form-group">
           <label class="form-label" for="slideCount">
@@ -167,45 +123,39 @@
         <!-- 互動程度 -->
         <div class="form-group">
           <label class="form-label">互動程度</label>
-          <div class="radio-group">
+          <div class="radio-group radio-group-horizontal">
             <label class="radio-label">
               <input type="radio" name="interaction" value="low" class="form-radio">
               <span class="radio-custom"></span>
-              <span class="radio-text">低 - 純講授</span>
+              <span class="radio-text">低</span>
             </label>
             <label class="radio-label">
               <input type="radio" name="interaction" value="medium" class="form-radio" checked>
               <span class="radio-custom"></span>
-              <span class="radio-text">中 - Q&amp;A 互動</span>
+              <span class="radio-text">中</span>
             </label>
             <label class="radio-label">
               <input type="radio" name="interaction" value="high" class="form-radio">
               <span class="radio-custom"></span>
-              <span class="radio-text">高 - 工作坊式</span>
+              <span class="radio-text">高</span>
             </label>
           </div>
         </div>
-
-        <!-- 自訂 prompt -->
-        <div class="form-group form-group-full">
-          <label class="form-label" for="customPrompt">自訂 Prompt</label>
-          <textarea class="form-textarea" id="customPrompt" rows="3"
-            placeholder="輸入額外指令（選填）..."></textarea>
-        </div>
       </div>
 
-      <div class="step-nav">
-        <button class="btn btn-secondary" id="step2Prev" type="button">上一步</button>
-        <button class="btn btn-primary" id="step2Next" type="button">下一步</button>
+      <!-- 自訂 prompt -->
+      <div class="form-group" style="margin-top: 16px;">
+        <label class="form-label" for="customPrompt">自訂 Prompt</label>
+        <textarea class="form-textarea" id="customPrompt" rows="3"
+          placeholder="輸入額外指令（選填）..."></textarea>
       </div>
     </section>
 
     <!-- ============================== -->
-    <!-- Step 3: 輸入素材               -->
+    <!-- 輸入素材                         -->
     <!-- ============================== -->
-    <section class="step-panel hidden" id="step3Panel" data-step="3">
-      <h2 class="panel-title">輸入素材</h2>
-      <p class="panel-desc">提供素材內容，AI 將為你生成簡報</p>
+    <section class="form-section" id="materialSection">
+      <h2 class="section-title">輸入素材</h2>
 
       <!-- AI mode input -->
       <div class="input-area" id="aiInputArea">
@@ -269,24 +219,25 @@
         <textarea class="form-textarea form-textarea-lg" id="textbookText"
           placeholder="貼上課文原文（選填），或直接拖曳課文檔案..." rows="6"></textarea>
       </div>
-
-      <div class="step-nav">
-        <button class="btn btn-secondary" id="step3Prev" type="button">上一步</button>
-        <button class="btn btn-primary btn-generate" id="btnGenerate" type="button">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>
-          開始生成
-        </button>
-      </div>
     </section>
 
     <!-- ============================== -->
-    <!-- Step 4: 預覽匯出               -->
+    <!-- 生成按鈕                         -->
     <!-- ============================== -->
-    <section class="step-panel hidden" id="step4Panel" data-step="4">
-      <h2 class="panel-title">預覽與匯出</h2>
-      <p class="panel-desc">編輯大綱內容，預覽 NotebookLM YAML</p>
+    <div class="generate-row" id="generateRow">
+      <button class="btn btn-primary btn-generate" id="btnGenerate" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        開始生成
+      </button>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 預覽與匯出 (hidden until generated) -->
+    <!-- ============================== -->
+    <section class="form-section hidden" id="previewSection">
+      <h2 class="section-title">預覽與匯出</h2>
 
       <!-- Action buttons centered above editor -->
       <div class="editor-actions">
@@ -362,10 +313,6 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <div class="step-nav">
-        <button class="btn btn-secondary" id="step4Prev" type="button">上一步</button>
       </div>
     </section>
 

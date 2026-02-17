@@ -2,7 +2,7 @@
 
 > 基於 Google Gemini AI 的智慧簡報大綱生成工具，專為 NotebookLM 製作簡報而設計
 
-[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/yourusername/nblm-gem)
+[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/yourusername/nblm-gem)
 [![License](https://img.shields.io/badge/license-ISC-green.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-20.x-brightgreen.svg)](https://nodejs.org/)
 
@@ -63,33 +63,31 @@ docker run -p 3000:3000 nblm-gem
 - 在應用程式中點擊「API Key」按鈕
 - 輸入並儲存（本地加密儲存）
 
-### 2. 選擇生成模式
+### 2. 設定簡報維度
+- 從下拉選單選擇：簡報者角色、受眾面向、簡報場景、視覺風格
+- 調整額外參數：頁數、語言、互動程度
+- 所有設定在單頁內一目了然
+
+### 3. 選擇生成模式 & 輸入素材
 
 #### 📌 智慧生成模式
 - 貼上原始素材（文字、網址、上傳檔案）
-- 選擇簡報者角色、受眾、情境、風格
 - AI 自動分析並生成結構化大綱
 
 #### 📌 現有大綱轉檔
 - 貼上您的大綱（任何格式）
 - 保留原始結構，僅轉換為 YAML 格式
-- 適合已有完整大綱的情境
 
 #### 📌 教科書切片
 - 上傳教科書內容
 - AI 自動切分為適當段落
-- 每段生成摘要與重點
 
-### 3. 編輯大綱
+### 4. 編輯 & 匯出
+- 點擊「開始生成」，預覽區自動顯示並捲動到位
 - 左側：豐富卡片編輯器，依頁面類型（封面/內容/結尾）顯示不同欄位
 - 右側：即時 YAML 預覽（自動排除講者講綱，僅顯示 NotebookLM 所需內容）
-- 300ms 防抖動自動同步
-
-### 4. 下載與使用
 - 點擊「複製 YAML」直接複製到剪貼簿
-- 前往 [NotebookLM](https://notebooklm.google.com)
-- 建立筆記本 → 新增來源 → 貼上複製的文字 或 上傳 YAML 檔
-- 選擇「產生簡報」即可生成專業簡報
+- 前往 [NotebookLM](https://notebooklm.google.com)，貼上即可生成簡報
 - 另可下載 Markdown 大綱（含講者講綱）作為教學備忘
 
 ## 🎯 適用場景
@@ -149,6 +147,18 @@ nblm-gem/
 ```
 
 ## 🔄 版本歷程
+
+### v2.2.0 (2026-02-18) - 單頁佈局改版
+- ✨ 4 步驟精靈合併為單頁垂直佈局，所有設定一目了然
+- ✨ 42 張卡片選擇器改為 4 個下拉選單（2×2 grid），大幅精簡介面
+- ✨ 受眾下拉選單使用 `<optgroup>` 區分教育類/職場類
+- ✨ 額外參數改為 3 欄橫向排列（頁數、語言、互動程度）
+- ✨ 預覽區生成後自動顯示並 smooth scroll 到位
+- ✨ 完全自訂模式直接顯示編輯器，隱藏所有設定區塊
+- 🔧 移除 step progress bar、step-nav 按鈕、card grid 等多餘 UI
+- 🔧 CSS 精簡約 190 行，新增約 60 行新佈局樣式
+- 🔧 app.js 移除 `goToStep()`、`renderCards()`、`initStepNavigation()` 等函數
+- 📱 響應式：768px 以下維度/參數自動切換為單欄
 
 ### v2.1.0 (2026-02-17) - NotebookLM 排版優化 & 編輯器增強
 - ✨ 卡片編輯器全面改版：封面/內容/結尾頁分類，支援六欄位編輯

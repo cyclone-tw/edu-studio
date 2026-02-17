@@ -2,6 +2,119 @@
 
 ---
 
+## v2.2.0 - 單頁佈局改版
+
+### 發布日期
+2026-02-18
+
+### 重大更新
+
+#### 1. 4 步驟精靈合併為單頁佈局
+**問題**：原本的 4 步驟精靈（選擇維度 → 額外參數 → 輸入素材 → 預覽匯出）操作繁瑣，用戶需要多次「下一步」。Step 1 的卡片選擇器佔用大量空間（8+10+9+15 = 42 張卡片）。
+
+**解法**：Steps 1-3 合併為單頁垂直排列，Step 4 預覽區在生成後顯示在下方。
+
+佈局結構：
+```
+[AI 智慧生成] [課文忠實模式] [完全自訂]    ← 模式切換（不變）
+├─ 簡報維度設定（4 個下拉選單，2×2 grid）
+├─ 額外參數（頁數、語言、互動程度，3 欄橫排）
+├─ 輸入素材（AI/課文切換，拖曳上傳+文字輸入）
+├─ [開始生成] 按鈕（置中）
+└─ 預覽與匯出（生成後顯示，含編輯器+YAML 預覽）
+```
+
+#### 2. 卡片選擇器改為下拉選單
+- 42 張 preset-card 改為 4 個 `<select>` 下拉選單
+- `#roleSelect` — 簡報者角色（8 選項，含角色語氣描述）
+- `#audienceSelect` — 受眾面向（10 選項，用 `<optgroup>` 分教育類/職場類）
+- `#contextSelect` — 簡報場景（9 選項）
+- `#styleSelect` — 視覺風格（15 選項）
+- `populateDropdowns()` 從 PRESETS 動態填充選項
+- `initDropdownBindings()` 綁定 change 事件更新 state
+
+#### 3. 參數區改為橫向排列
+- 原本 2 欄 `form-grid` 改為 3 欄 `params-row`
+- 互動程度改為橫向 radio（`radio-group-horizontal`），標籤簡化為「低/中/高」
+- 自訂 Prompt textarea 獨立一行
+
+#### 4. 預覽區生成後顯示
+- 新增 `showPreview()` 函式
+- 生成完成後預覽區自動取消 hidden + smooth scroll 到位
+- 取代原本的 `goToStep(4)` 邏輯
+
+#### 5. 模式切換邏輯更新
+- `setMode()` 改為控制各 section 的顯示/隱藏（取代 step panel 切換）
+- AI 模式：顯示維度+參數+素材+生成按鈕
+- 課文模式：同 AI 模式，切換素材輸入區
+- 完全自訂：隱藏所有設定區，直接顯示編輯器
+
+### 移除項目
+
+#### HTML
+- `#stepProgress` 進度條
+- 4 個 `step-panel` section wrapper
+- `#roleCards`, `#audienceCardsEdu/Work`, `#scenarioCards`, `#styleCards` card 容器
+- 所有 `step-nav` div（上一步/下一步按鈕）
+
+#### CSS（約 190 行）
+- `.step-progress`, `.step-item`, `.step-dot`, `.step-label`, `.step-line`
+- `.step-panel`, `.panel-title`, `.panel-desc`
+- `.card-section`, `.card-section-title`, `.category-badge`
+- `.card-grid`, `.preset-card` 及所有相關樣式
+- `.step-nav`, `.export-buttons`
+- 響應式媒體查詢中的步驟/卡片相關樣式
+
+#### JavaScript
+- `state.step` 屬性
+- `goToStep()` 函數
+- `renderCards()`, `createCard()`, `parseLabel()` 函數
+- `initCardGroup()`, `initAudienceGroups()` 函數
+- `initStepNavigation()` 函數
+- DOM refs: `stepProgress`, `stepPanels`, `roleCards`, `audienceCardsEdu/Work`, `scenarioCards`, `styleCards`, `step1Next`, `step2Prev/Next`, `step3Prev`, `step4Prev`
+
+### 新增項目
+
+#### CSS（約 60 行）
+- `.form-section` — 區塊間距與動畫
+- `.section-title` — 區塊標題（帶底線）
+- `.dimension-grid` — `grid-template-columns: 1fr 1fr`
+- `.params-row` — `grid-template-columns: 1fr 1fr 1fr`
+- `.radio-group-horizontal` — 橫向 radio 排列
+- `.generate-row` — 置中生成按鈕
+- `@media (max-width: 768px)` — 維度/參數改為單欄
+
+#### JavaScript
+- `populateDropdowns()` — 從 PRESETS 填充 4 個 select
+- `initDropdownBindings()` — change event → 更新 state
+- `showPreview()` — 顯示預覽區 + smooth scroll
+- DOM refs: `roleSelect`, `audienceSelect`, `contextSelect`, `styleSelect`, `dimensionsSection`, `paramsSection`, `materialSection`, `generateRow`, `previewSection`
+
+### 修改檔案
+| 檔案 | 變更內容 |
+|------|---------|
+| `public/index.html` | 移除步驟精靈，改為單頁垂直佈局（維度下拉+參數+素材+生成+預覽） |
+| `public/css/styles.css` | 刪除 ~190 行步驟/卡片樣式，新增 ~60 行佈局樣式 |
+| `public/js/app.js` | 刪除步驟邏輯，新增下拉選單邏輯，更新 setMode/generate 流程 |
+
+### 未修改檔案
+- `presets.js` — 資料結構不變，下拉選單直接讀取
+- `gemini.js` — API 呼叫不變
+- `yaml-engine.js` — YAML 生成不變
+- `outline-editor.js` — 編輯器不變
+
+### 驗證清單
+- [x] 頁面載入後單頁佈局正確顯示
+- [x] 4 個下拉選單從 PRESETS 正確填充
+- [x] 受眾下拉使用 optgroup 分類
+- [x] 切換 AI/課文模式，素材區正確切換
+- [x] 完全自訂模式直接顯示編輯器
+- [x] 生成後預覽區出現並捲動到位
+- [x] 維度未選時點擊生成，toast 提示
+- [x] 響應式：768px 以下改為單欄
+
+---
+
 ## v2.1.0 - NotebookLM 排版優化 & 編輯器增強
 
 ### 發布日期
@@ -214,10 +327,10 @@ git log --oneline --grep="feat:" --grep="fix:" --since="2026-02-16"
 - [x] 支援匯出多種格式（v2.1 已新增 YAML + MD）
 - [ ] 整合更多 AI 模型選項
 - [ ] 效能優化與快取機制
-- [ ] 單頁重新生成功能
+- [x] 單頁佈局改版（v2.2 完成）
 - [ ] 自訂風格色彩配置
 
 ---
 
-**最新版本**：2.1.0
-**最後更新**：2026-02-17
+**最新版本**：2.2.0
+**最後更新**：2026-02-18

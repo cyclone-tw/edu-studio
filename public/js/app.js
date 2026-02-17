@@ -1,5 +1,6 @@
 /* ============================================================
    NBLM 簡報生成助手 — Main Application Controller (app.js)
+   Single-page layout with dropdown selectors
    ============================================================ */
 
 (function () {
@@ -11,7 +12,6 @@
   const state = {
     mode: 'ai',                // 'ai' | 'textbook' | 'custom'
     aiInputMode: 'smart',      // 'smart' | 'outline' (for AI mode)
-    step: 1,
     presenterRole: null,
     audience: null,
     context: null,
@@ -36,17 +36,23 @@
 
   const dom = {
     modeTabs:          $('#modeTabs'),
-    stepProgress:      $('#stepProgress'),
-    stepPanels:        [null, $('#step1Panel'), $('#step2Panel'), $('#step3Panel'), $('#step4Panel')],
-    roleCards:         $('#roleCards'),
-    audienceCardsEdu:  $('#audienceCardsEdu'),
-    audienceCardsWork: $('#audienceCardsWork'),
-    scenarioCards:     $('#scenarioCards'),
-    styleCards:        $('#styleCards'),
+    // Dimension dropdowns
+    roleSelect:        $('#roleSelect'),
+    audienceSelect:    $('#audienceSelect'),
+    contextSelect:     $('#contextSelect'),
+    styleSelect:       $('#styleSelect'),
+    // Sections
+    dimensionsSection: $('#dimensionsSection'),
+    paramsSection:     $('#paramsSection'),
+    materialSection:   $('#materialSection'),
+    generateRow:       $('#generateRow'),
+    previewSection:    $('#previewSection'),
+    // Form controls
     slideCount:        $('#slideCount'),
     slideCountValue:   $('#slideCountValue'),
     language:          $('#language'),
     customPrompt:      $('#customPrompt'),
+    // Input areas
     aiInputArea:       $('#aiInputArea'),
     aiInputTabs:       $('.ai-input-tabs'),
     smartInputPanel:   $('#smartInputPanel'),
@@ -55,40 +61,40 @@
     materialText:      $('#materialText'),
     outlineText:       $('#outlineText'),
     textbookText:      $('#textbookText'),
+    // File upload
     smartDropZone:     $('#smartDropZone'),
     smartFileInput:    $('#smartFileInput'),
     smartFileTags:     $('#smartFileTags'),
     textbookDropZone:  $('#textbookDropZone'),
     textbookFileInput: $('#textbookFileInput'),
     textbookFileTags:  $('#textbookFileTags'),
-    step1Next:         $('#step1Next'),
-    step2Prev:         $('#step2Prev'),
-    step2Next:         $('#step2Next'),
-    step3Prev:         $('#step3Prev'),
+    // Buttons
     btnGenerate:       $('#btnGenerate'),
-    step4Prev:         $('#step4Prev'),
     btnDownloadYaml:   $('#btnDownloadYaml'),
     btnDownloadMd:     $('#btnDownloadMd'),
-    previewContent:    $('#previewContent'),
+    btnCopyYaml:       $('#btnCopyYaml'),
+    // API Key
     btnOpenApiKey:     $('#btnOpenApiKey'),
     apiKeyModal:       $('#apiKeyModal'),
     apiKeyInput:       $('#apiKeyInput'),
     btnSaveApiKey:     $('#btnSaveApiKey'),
     btnCancelApiKey:   $('#btnCancelApiKey'),
+    // Loading
     loadingOverlay:    $('#loadingOverlay'),
     loadingText:       $('#loadingText'),
     toastContainer:    $('#toastContainer'),
+    // Help
     btnOpenHelp:       $('#btnOpenHelp'),
     helpModal:         $('#helpModal'),
     btnCloseHelp:      $('#btnCloseHelp'),
     btnHelpOk:         $('#btnHelpOk'),
-    btnCopyYaml:       $('#btnCopyYaml'),
+    // Editor
     yamlPreview:       $('#yamlPreview'),
     outlineEditor:     $('#outlineEditor')
   };
 
   // ──────────────────────────────────────────────
-  // 10. Toast System
+  // Toast System
   // ──────────────────────────────────────────────
   function showToast(message, type) {
     type = type || 'info';
@@ -97,19 +103,18 @@
     toast.textContent = message;
     dom.toastContainer.appendChild(toast);
 
-    // Trigger reflow then add visible class for animation
     requestAnimationFrame(function () {
       toast.classList.add('toast-visible');
     });
 
     setTimeout(function () {
-      if (!toast) return; // Guard against null toast
+      if (!toast) return;
       toast.classList.remove('toast-visible');
       toast.classList.add('toast-fade-out');
 
       var removed = false;
       var removeToast = function() {
-        if (removed || !toast) return; // Prevent double removal
+        if (removed || !toast) return;
         removed = true;
         if (toast.parentNode) {
           toast.parentNode.removeChild(toast);
@@ -117,16 +122,14 @@
       };
 
       toast.addEventListener('transitionend', removeToast, { once: true });
-      // Fallback removal
       setTimeout(removeToast, 500);
     }, 3000);
   }
 
-  // Expose globally for other modules
   window.showToast = showToast;
 
   // ──────────────────────────────────────────────
-  // 11. Loading Overlay
+  // Loading Overlay
   // ──────────────────────────────────────────────
   function showLoading(text) {
     dom.loadingText.textContent = text || '生成中，請稍候...';
@@ -141,50 +144,84 @@
   window.hideLoading = hideLoading;
 
   // ──────────────────────────────────────────────
-  // 3. Step Flow Control
+  // Dropdown Population
   // ──────────────────────────────────────────────
-  function goToStep(n) {
-    if (n < 1 || n > 4) return;
-    state.step = n;
+  function populateDropdowns() {
+    // Presenter Roles
+    PRESETS.presenterRoles.forEach(function (item) {
+      var opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.label + ' — ' + item.tone;
+      dom.roleSelect.appendChild(opt);
+    });
 
-    // Hide all step panels
-    for (var i = 1; i <= 4; i++) {
-      if (dom.stepPanels[i]) {
-        dom.stepPanels[i].classList.add('hidden');
+    // Audience Profiles — with optgroups
+    var eduGroup = document.createElement('optgroup');
+    eduGroup.label = '教育類';
+    var workGroup = document.createElement('optgroup');
+    workGroup.label = '職場類';
+
+    PRESETS.audienceProfiles.forEach(function (item) {
+      var opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.label;
+      if (item.category === '教育類') {
+        eduGroup.appendChild(opt);
+      } else {
+        workGroup.appendChild(opt);
       }
-    }
+    });
 
-    // Show target panel
-    if (dom.stepPanels[n]) {
-      dom.stepPanels[n].classList.remove('hidden');
-    }
+    dom.audienceSelect.appendChild(eduGroup);
+    dom.audienceSelect.appendChild(workGroup);
 
-    // Update step progress dots
-    var stepItems = $$('#stepProgress .step-item');
-    stepItems.forEach(function (item) {
-      var stepNum = parseInt(item.getAttribute('data-step'), 10);
-      item.classList.remove('active', 'completed');
-      if (stepNum === n) {
-        item.classList.add('active');
-      } else if (stepNum < n) {
-        item.classList.add('completed');
-      }
+    // Contexts
+    PRESETS.contexts.forEach(function (item) {
+      var opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.label;
+      dom.contextSelect.appendChild(opt);
+    });
+
+    // Visual Styles
+    PRESETS.visualStyles.forEach(function (item) {
+      var opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.label;
+      dom.styleSelect.appendChild(opt);
     });
   }
 
   // ──────────────────────────────────────────────
-  // 2. Mode Tab Switching
+  // Dropdown Bindings
+  // ──────────────────────────────────────────────
+  function initDropdownBindings() {
+    dom.roleSelect.addEventListener('change', function () {
+      state.presenterRole = this.value || null;
+    });
+    dom.audienceSelect.addEventListener('change', function () {
+      state.audience = this.value || null;
+    });
+    dom.contextSelect.addEventListener('change', function () {
+      state.context = this.value || null;
+    });
+    dom.styleSelect.addEventListener('change', function () {
+      state.visualStyle = this.value || null;
+    });
+  }
+
+  // ──────────────────────────────────────────────
+  // Mode Tab Switching
   // ──────────────────────────────────────────────
   function setMode(mode) {
-    // When switching away from custom mode, reset step and clear editor
+    // When switching away from custom mode, clear editor
     if (mode !== 'custom' && state.mode === 'custom') {
-      state.step = 1;
       if (typeof OutlineEditor !== 'undefined') OutlineEditor.clear();
     }
 
     state.mode = mode;
 
-    // Clear file state on mode switch to prevent stale files
+    // Clear file state on mode switch
     state.uploadedFiles.length = 0;
     state.textbookFiles.length = 0;
     if (dom.smartFileTags) dom.smartFileTags.innerHTML = '';
@@ -195,34 +232,45 @@
       tab.classList.toggle('active', tab.getAttribute('data-mode') === mode);
     });
 
-    dom.stepProgress.classList.remove('hidden');
-    if (dom.step4Prev) dom.step4Prev.classList.remove('hidden');
-
     if (mode === 'ai') {
+      dom.dimensionsSection.classList.remove('hidden');
+      dom.paramsSection.classList.remove('hidden');
+      dom.materialSection.classList.remove('hidden');
+      dom.generateRow.classList.remove('hidden');
       dom.aiInputArea.classList.remove('hidden');
       dom.textbookInputArea.classList.add('hidden');
+      dom.previewSection.classList.add('hidden');
     } else if (mode === 'textbook') {
+      dom.dimensionsSection.classList.remove('hidden');
+      dom.paramsSection.classList.remove('hidden');
+      dom.materialSection.classList.remove('hidden');
+      dom.generateRow.classList.remove('hidden');
       dom.aiInputArea.classList.add('hidden');
       dom.textbookInputArea.classList.remove('hidden');
+      dom.previewSection.classList.add('hidden');
     } else if (mode === 'custom') {
-      // Custom mode: skip steps, go directly to editor
-      dom.aiInputArea.classList.add('hidden');
-      dom.textbookInputArea.classList.add('hidden');
-      dom.stepProgress.classList.add('hidden');
-      if (dom.step4Prev) dom.step4Prev.classList.add('hidden');
+      // Custom mode: hide all form sections, show editor directly
+      dom.dimensionsSection.classList.add('hidden');
+      dom.paramsSection.classList.add('hidden');
+      dom.materialSection.classList.add('hidden');
+      dom.generateRow.classList.add('hidden');
+      dom.previewSection.classList.remove('hidden');
 
       // Initialize empty document and load into editor
       if (typeof OutlineEditor !== 'undefined') {
         var emptyDoc = OutlineEditor.createEmptyDocument();
         OutlineEditor.loadOutline(emptyDoc);
       }
-
-      goToStep(4);
-      return;
     }
+  }
 
-    // Go to current step (re-render step panels visibility)
-    goToStep(state.step);
+  // ──────────────────────────────────────────────
+  // Show Preview Section (after generation)
+  // ──────────────────────────────────────────────
+  function showPreview() {
+    dom.previewSection.classList.remove('hidden');
+    // Smooth scroll to preview
+    dom.previewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   // ──────────────────────────────────────────────
@@ -231,12 +279,10 @@
   function setAiInputMode(aiMode) {
     state.aiInputMode = aiMode;
 
-    // Toggle active class on AI input tabs
     $$('.ai-tab').forEach(function (tab) {
       tab.classList.toggle('active', tab.getAttribute('data-ai-mode') === aiMode);
     });
 
-    // Toggle input panels
     if (aiMode === 'smart') {
       dom.smartInputPanel.classList.remove('hidden');
       dom.outlineInputPanel.classList.add('hidden');
@@ -247,128 +293,7 @@
   }
 
   // ──────────────────────────────────────────────
-  // 4. Card Selector Rendering
-  // ──────────────────────────────────────────────
-
-  /**
-   * Parse label string like '👨‍🏫 教師' into { emoji, text }.
-   * Emoji may be a single char, a multi-codepoint sequence, or a flag.
-   */
-  function parseLabel(label) {
-    var parts = label.trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return { emoji: parts[0], text: parts.slice(1).join(' ') };
-    }
-    return { emoji: '', text: label };
-  }
-
-  function createCard(id, label, desc) {
-    var parsed = parseLabel(label);
-    var card = document.createElement('div');
-    card.className = 'preset-card';
-    card.setAttribute('data-id', id);
-
-    var emojiSpan = document.createElement('span');
-    emojiSpan.className = 'card-emoji';
-    emojiSpan.textContent = parsed.emoji;
-
-    var labelSpan = document.createElement('span');
-    labelSpan.className = 'card-name';
-    labelSpan.textContent = parsed.text;
-
-    card.appendChild(emojiSpan);
-    card.appendChild(labelSpan);
-
-    if (desc) {
-      var descSpan = document.createElement('span');
-      descSpan.className = 'card-desc';
-      descSpan.textContent = desc;
-      card.appendChild(descSpan);
-    }
-
-    return card;
-  }
-
-  function renderCards() {
-    // Presenter Roles
-    PRESETS.presenterRoles.forEach(function (item) {
-      dom.roleCards.appendChild(createCard(item.id, item.label, item.tone));
-    });
-
-    // Audience Profiles — Education
-    PRESETS.audienceProfiles
-      .filter(function (a) { return a.category === '教育類'; })
-      .forEach(function (item) {
-        dom.audienceCardsEdu.appendChild(createCard(item.id, item.label, item.traits));
-      });
-
-    // Audience Profiles — Work
-    PRESETS.audienceProfiles
-      .filter(function (a) { return a.category === '職場類'; })
-      .forEach(function (item) {
-        dom.audienceCardsWork.appendChild(createCard(item.id, item.label, item.traits));
-      });
-
-    // Contexts / Scenarios
-    PRESETS.contexts.forEach(function (item) {
-      dom.scenarioCards.appendChild(createCard(item.id, item.label, ''));
-    });
-
-    // Visual Styles
-    PRESETS.visualStyles.forEach(function (item) {
-      dom.styleCards.appendChild(createCard(item.id, item.label, item.css));
-    });
-  }
-
-  /**
-   * Set up single-select click handlers for a card container.
-   * stateKey: key in `state` to update on selection.
-   */
-  function initCardGroup(container, stateKey) {
-    if (!container) return;
-    container.addEventListener('click', function (e) {
-      var card = e.target.closest('.preset-card');
-      if (!card) return;
-
-      // Deselect siblings in this container
-      container.querySelectorAll('.preset-card').forEach(function (c) {
-        c.classList.remove('selected');
-      });
-      card.classList.add('selected');
-      state[stateKey] = card.getAttribute('data-id');
-    });
-  }
-
-  /**
-   * Audience cards span two containers but share one state key.
-   * Selecting in one container deselects the other.
-   */
-  function initAudienceGroups() {
-    var eduContainer = dom.audienceCardsEdu;
-    var workContainer = dom.audienceCardsWork;
-
-    function handleClick(e) {
-      var card = e.target.closest('.preset-card');
-      if (!card) return;
-
-      // Deselect all audience cards in both containers
-      eduContainer.querySelectorAll('.preset-card').forEach(function (c) {
-        c.classList.remove('selected');
-      });
-      workContainer.querySelectorAll('.preset-card').forEach(function (c) {
-        c.classList.remove('selected');
-      });
-
-      card.classList.add('selected');
-      state.audience = card.getAttribute('data-id');
-    }
-
-    eduContainer.addEventListener('click', handleClick);
-    workContainer.addEventListener('click', handleClick);
-  }
-
-  // ──────────────────────────────────────────────
-  // 5. Range Slider
+  // Range Slider
   // ──────────────────────────────────────────────
   function initSlider() {
     dom.slideCount.addEventListener('input', function () {
@@ -379,7 +304,7 @@
   }
 
   // ──────────────────────────────────────────────
-  // 6. Form Bindings
+  // Form Bindings
   // ──────────────────────────────────────────────
   function initFormBindings() {
     dom.language.addEventListener('change', function () {
@@ -398,10 +323,10 @@
   }
 
   // ──────────────────────────────────────────────
-  // 7. File Upload — Drag & Drop
+  // File Upload — Drag & Drop
   // ──────────────────────────────────────────────
 
-  var pendingReads = 0; // Track in-flight FileReader operations
+  var pendingReads = 0;
 
   var ALLOWED_TYPES = {
     'application/pdf': 'PDF',
@@ -422,19 +347,16 @@
   function initDropZone(dropZoneEl, fileInputEl, fileTagsEl, filesArray, filesKey) {
     if (!dropZoneEl) return;
 
-    // Click to open file picker
     dropZoneEl.addEventListener('click', function (e) {
       if (e.target === fileInputEl) return;
       fileInputEl.click();
     });
 
-    // File input change
     fileInputEl.addEventListener('change', function () {
       handleFiles(this.files, filesArray, filesKey, fileTagsEl);
-      this.value = ''; // Reset so same file can be re-selected
+      this.value = '';
     });
 
-    // Drag & drop events
     dropZoneEl.addEventListener('dragover', function (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -444,7 +366,6 @@
     dropZoneEl.addEventListener('dragleave', function (e) {
       e.preventDefault();
       e.stopPropagation();
-      // Only remove hover if leaving the drop zone entirely (not entering a child)
       if (!dropZoneEl.contains(e.relatedTarget)) {
         dropZoneEl.classList.remove('drop-zone-hover');
       }
@@ -462,9 +383,7 @@
     for (var i = 0; i < fileList.length; i++) {
       var file = fileList[i];
 
-      // Validate type
       var mimeType = file.type;
-      // Fallback: detect from extension if MIME is empty
       if (!mimeType) {
         var ext = file.name.split('.').pop().toLowerCase();
         var extMap = { pdf: 'application/pdf', txt: 'text/plain', mp3: 'audio/mpeg', mp4: 'video/mp4', wav: 'audio/wav', m4a: 'audio/x-m4a', ogg: 'audio/ogg', webm: 'audio/webm' };
@@ -476,19 +395,16 @@
         continue;
       }
 
-      // Validate size
       if (file.size > MAX_FILE_SIZE) {
         showToast('檔案 ' + file.name + ' 超過 20MB 限制', 'error');
         continue;
       }
 
-      // Read file
       (function (f, mime) {
         pendingReads++;
         if (dom.btnGenerate) dom.btnGenerate.disabled = true;
 
         if (mime === 'text/plain') {
-          // TXT: read as text, append to textarea
           var reader = new FileReader();
           reader.onload = function (ev) {
             var textarea;
@@ -518,11 +434,8 @@
           };
           reader.readAsText(f, 'UTF-8');
         } else {
-          // Binary files: read as base64 for Gemini multimodal
           var reader = new FileReader();
           reader.onload = function (ev) {
-            // ev.target.result is "data:mime;base64,XXXX"
-            // Strip the prefix to get raw base64
             var base64 = ev.target.result.split(',')[1];
 
             state[filesKey].push({
@@ -603,7 +516,7 @@
   }
 
   // ──────────────────────────────────────────────
-  // 8. API Key Modal
+  // API Key Modal
   // ──────────────────────────────────────────────
   function initApiKeyModal() {
     dom.btnOpenApiKey.addEventListener('click', function () {
@@ -627,7 +540,6 @@
       dom.apiKeyModal.classList.add('hidden');
     });
 
-    // Click overlay to close
     dom.apiKeyModal.addEventListener('click', function (e) {
       if (e.target === dom.apiKeyModal) {
         dom.apiKeyModal.classList.add('hidden');
@@ -651,7 +563,6 @@
       dom.helpModal.classList.add('hidden');
     });
 
-    // Click overlay to close
     dom.helpModal.addEventListener('click', function (e) {
       if (e.target === dom.helpModal) {
         dom.helpModal.classList.add('hidden');
@@ -660,7 +571,7 @@
   }
 
   // ──────────────────────────────────────────────
-  // 9. Generate Button & Export
+  // Generate Button & Export
   // ──────────────────────────────────────────────
   function getInputData() {
     var text = '';
@@ -672,7 +583,6 @@
         files = state.uploadedFiles || [];
       } else {
         text = (dom.outlineText.value || '').trim();
-        // Outline mode: no files
       }
     } else if (state.mode === 'textbook') {
       text = (dom.textbookText.value || '').trim();
@@ -682,17 +592,15 @@
     return { text: text, files: files };
   }
 
-  var isGenerating = false; // Prevent double-click
+  var isGenerating = false;
 
   function initGenerateButton() {
     dom.btnGenerate.addEventListener('click', async function () {
-      // Prevent double-click
       if (isGenerating) {
         showToast('正在生成中，請稍候...', 'info');
         return;
       }
 
-      // Prevent clicking while files are still being read
       if (pendingReads > 0) {
         showToast('檔案讀取中，請稍候...', 'info');
         return;
@@ -702,6 +610,26 @@
       if (!state.apiKey) {
         showToast('請先設定 Gemini API Key', 'error');
         return;
+      }
+
+      // Validate dimensions (for ai/textbook modes)
+      if (state.mode !== 'custom') {
+        if (!state.presenterRole) {
+          showToast('請選擇簡報者角色', 'error');
+          return;
+        }
+        if (!state.audience) {
+          showToast('請選擇受眾面向', 'error');
+          return;
+        }
+        if (!state.context) {
+          showToast('請選擇簡報場景', 'error');
+          return;
+        }
+        if (!state.visualStyle) {
+          showToast('請選擇視覺風格', 'error');
+          return;
+        }
       }
 
       // Validate input
@@ -743,7 +671,6 @@
           try {
             if (typeof window.buildYaml === 'function') {
               doc = window.buildYaml(result, state);
-              // Generate NBLM YAML (without script) for preview
               if (typeof window.toNblmYaml === 'function') {
                 yamlString = window.toNblmYaml(doc);
               } else {
@@ -757,10 +684,8 @@
             yamlString = jsyaml.dump(result);
           }
 
-          // Update YAML preview
           if (dom.yamlPreview) dom.yamlPreview.value = yamlString;
 
-          // Load full document (with script) into outline editor
           if (typeof OutlineEditor !== 'undefined' && doc) {
             try {
               OutlineEditor.loadOutline(doc);
@@ -773,7 +698,7 @@
         hideLoading();
         isGenerating = false;
         dom.btnGenerate.disabled = false;
-        goToStep(4);
+        showPreview();
         showToast('簡報生成完成！', 'success');
       } catch (err) {
         hideLoading();
@@ -787,13 +712,11 @@
 
   /**
    * Generate filename with date prefix and title
-   * Format: YYYY-MM-DD-標題.ext
    */
   function generateFilename(extension) {
     var yamlContent = dom.yamlPreview.value;
     var title = 'presentation';
 
-    // Try to extract title from YAML content
     try {
       var data = jsyaml.load(yamlContent);
       if (data && data.title) {
@@ -802,7 +725,6 @@
         title = data[0].title;
       }
     } catch (e) {
-      // If YAML parse fails, try to extract from first line
       var lines = yamlContent.split('\n');
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i].trim();
@@ -813,13 +735,11 @@
       }
     }
 
-    // Sanitize title for filename (remove special chars, limit length)
     title = title
-      .replace(/[<>:"/\\|?*]/g, '') // Remove invalid filename chars
-      .replace(/\s+/g, '-')          // Replace spaces with hyphens
-      .substring(0, 50);             // Limit length
+      .replace(/[<>:"/\\|?*]/g, '')
+      .replace(/\s+/g, '-')
+      .substring(0, 50);
 
-    // Get current date in YYYY-MM-DD format
     var now = new Date();
     var year = now.getFullYear();
     var month = String(now.getMonth() + 1).padStart(2, '0');
@@ -930,49 +850,6 @@
   }
 
   // ──────────────────────────────────────────────
-  // Step Navigation Wiring
-  // ──────────────────────────────────────────────
-  function initStepNavigation() {
-    dom.step1Next.addEventListener('click', function () {
-      // Validate: all 4 dimensions must be selected
-      if (!state.presenterRole) {
-        showToast('請選擇簡報者角色', 'error');
-        return;
-      }
-      if (!state.audience) {
-        showToast('請選擇受眾面向', 'error');
-        return;
-      }
-      if (!state.context) {
-        showToast('請選擇簡報場景', 'error');
-        return;
-      }
-      if (!state.visualStyle) {
-        showToast('請選擇視覺風格', 'error');
-        return;
-      }
-      goToStep(2);
-    });
-
-    dom.step2Prev.addEventListener('click', function () {
-      goToStep(1);
-    });
-
-    dom.step2Next.addEventListener('click', function () {
-      goToStep(3);
-    });
-
-    dom.step3Prev.addEventListener('click', function () {
-      goToStep(2);
-    });
-
-    dom.step4Prev.addEventListener('click', function () {
-      if (state.mode === 'custom') return; // No previous step in custom mode
-      goToStep(3);
-    });
-  }
-
-  // ──────────────────────────────────────────────
   // Mode Tab Event Listener
   // ──────────────────────────────────────────────
   function initModeTabs() {
@@ -1001,18 +878,16 @@
   // Initialize Everything on DOMContentLoaded
   // ──────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', function () {
-    // Render cards from PRESETS
-    renderCards();
+    // Populate dropdowns from PRESETS
+    populateDropdowns();
 
-    // Init card selection groups
-    initCardGroup(dom.roleCards, 'presenterRole');
-    initAudienceGroups();
-    initCardGroup(dom.scenarioCards, 'context');
-    initCardGroup(dom.styleCards, 'visualStyle');
+    // Init dropdown bindings
+    initDropdownBindings();
 
     // Init form controls
     initSlider();
     initFormBindings();
+
     // Init drop zones
     initDropZone(dom.smartDropZone, dom.smartFileInput, dom.smartFileTags, state.uploadedFiles, 'uploadedFiles');
     initDropZone(dom.textbookDropZone, dom.textbookFileInput, dom.textbookFileTags, state.textbookFiles, 'textbookFiles');
@@ -1020,7 +895,6 @@
     // Init navigation
     initModeTabs();
     initAiInputTabs();
-    initStepNavigation();
 
     // Init generate & export
     initGenerateButton();
@@ -1041,14 +915,13 @@
         dom.outlineEditor || document.getElementById('outlineEditor'),
         dom.yamlPreview,
         function (updatedOutline) {
-          // Callback when outline is updated
           console.log('[OutlineEditor] Updated:', updatedOutline);
         }
       );
       OutlineEditor.bindEvents();
     }
 
-    // Set initial mode (ensures correct panel visibility)
+    // Set initial mode
     setMode(state.mode);
     setAiInputMode(state.aiInputMode);
   });

@@ -155,213 +155,51 @@ body {
 }
 
 /* ========================================
-   Step Progress Bar
+   Form Sections (Single Page Layout)
    ======================================== */
-.step-progress {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
+.form-section {
   margin-bottom: 32px;
-  padding: 0 40px;
-}
-
-.step-progress.hidden {
-  display: none;
-}
-
-.step-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  position: relative;
-}
-
-.step-dot {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 2px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  background: var(--bg-card);
-  transition: all var(--transition);
-}
-
-.step-label {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  transition: color var(--transition);
-}
-
-.step-item.active .step-dot {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--bg-primary);
-}
-
-.step-item.active .step-label {
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.step-item.completed .step-dot {
-  border-color: var(--accent);
-  background: transparent;
-  color: var(--accent);
-}
-
-.step-item.completed .step-label {
-  color: var(--accent);
-}
-
-.step-line {
-  flex: 1;
-  height: 2px;
-  background: var(--border);
-  margin: 0 8px;
-  margin-bottom: 22px;
-  min-width: 40px;
-  transition: background var(--transition);
-}
-
-.step-line.active {
-  background: var(--accent);
-}
-
-/* ========================================
-   Step Panels
-   ======================================== */
-.step-panel {
   animation: fadeIn 0.3s ease;
 }
 
-.step-panel.hidden {
+.form-section.hidden {
   display: none;
 }
 
-.panel-title {
-  font-size: 1.35rem;
+.section-title {
+  font-size: 1.15rem;
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
 }
 
-.panel-desc {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin-bottom: 28px;
-}
-
-/* ========================================
-   Card Selectors (Step 1)
-   ======================================== */
-.card-section {
-  margin-bottom: 32px;
-}
-
-.card-section-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  margin-bottom: 14px;
-  padding-left: 2px;
-}
-
-.category-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 3px 10px;
-  border-radius: 20px;
-  margin-bottom: 10px;
-  margin-top: 8px;
-}
-
-.category-badge.category-edu {
-  background: rgba(0, 212, 170, 0.12);
-  color: var(--accent);
-}
-
-.category-badge.category-work {
-  background: rgba(52, 152, 219, 0.12);
-  color: var(--info);
-}
-
-.card-grid {
+.dimension-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
-  margin-bottom: 8px;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
 }
 
-.preset-card {
-  padding: 16px 12px;
-  background: var(--bg-card);
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  text-align: center;
-  transition: all var(--transition);
-  user-select: none;
+.params-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
 }
 
-.preset-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px var(--accent-glow);
-  border-color: rgba(0, 212, 170, 0.4);
-}
-
-.preset-card.selected {
-  border-color: var(--accent);
-  background: rgba(0, 212, 170, 0.06);
-}
-
-.preset-card .card-emoji {
-  font-size: 1.8rem;
-  display: block;
-  margin-bottom: 6px;
-  transition: transform var(--transition);
-}
-
-.preset-card.selected .card-emoji {
-  transform: scale(1.2);
-}
-
-.preset-card .card-name {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  display: block;
-}
-
-.preset-card .card-desc {
-  font-size: 0.72rem;
-  color: var(--text-secondary);
-  margin-top: 4px;
-  display: block;
-  line-height: 1.3;
-}
-
-/* ========================================
-   Step Navigation
-   ======================================== */
-.step-nav {
+.radio-group-horizontal {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 32px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
+  flex-direction: row;
+  gap: 8px;
 }
 
-.export-buttons {
+.radio-group-horizontal .radio-label {
+  padding: 6px 10px;
+}
+
+.generate-row {
   display: flex;
-  gap: 10px;
+  justify-content: center;
+  padding: 24px 0;
 }
 
 /* ========================================
@@ -1739,46 +1577,11 @@ body {
     padding: 10px 8px;
   }
 
-  .step-progress {
-    padding: 0 8px;
+  .dimension-grid {
+    grid-template-columns: 1fr;
   }
 
-  .step-dot {
-    width: 28px;
-    height: 28px;
-    font-size: 0.7rem;
-  }
-
-  .step-label {
-    font-size: 0.65rem;
-  }
-
-  .step-line {
-    min-width: 16px;
-  }
-
-  .card-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 8px;
-  }
-
-  .preset-card {
-    padding: 12px 8px;
-  }
-
-  .preset-card .card-emoji {
-    font-size: 1.4rem;
-  }
-
-  .preset-card .card-name {
-    font-size: 0.78rem;
-  }
-
-  .preset-card .card-desc {
-    display: none;
-  }
-
-  .form-grid {
+  .params-row {
     grid-template-columns: 1fr;
   }
 
@@ -1794,11 +1597,6 @@ body {
 
   .editor-textarea {
     min-height: 200px;
-  }
-
-  .step-nav {
-    flex-wrap: wrap;
-    gap: 10px;
   }
 
   .pdf-results-grid {
