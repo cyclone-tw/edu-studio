@@ -1724,3 +1724,270 @@ body {
     max-width: 300px;
   }
 }
+
+/* ── Global Design Panel ── */
+.global-design-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.global-design-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.global-design-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.global-design-toggle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: transform 0.2s;
+}
+
+.global-design-body {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.global-design-body.collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
+.gd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gd-field-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.gd-field-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gd-field-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.gd-field-number {
+  width: 80px;
+}
+
+.gd-field-select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text-primary);
+  font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gd-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Color fields */
+.gd-color-row {
+  display: flex;
+  gap: 16px;
+}
+
+.gd-color-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gd-color-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.gd-color-picker {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 2px;
+  background: var(--bg-primary);
+}
+
+.gd-color-hex {
+  width: 90px !important;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* Typography row */
+.gd-typo-row {
+  display: flex;
+  gap: 16px;
+}
+
+.gd-typo-row .gd-field {
+  flex: 1;
+}
+
+/* Size row */
+.gd-size-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.gd-size-row .gd-field {
+  flex: 1;
+  min-width: 80px;
+}
+
+/* ── Slide Card Action Buttons ── */
+.outline-card-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.card-action-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.card-action-btn:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.card-action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.card-action-btn-danger:hover {
+  border-color: #e74c3c;
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+}
+
+/* ── Add Slide Button ── */
+.btn-add-slide {
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+
+.btn-add-slide:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0, 212, 170, 0.05);
+}
+
+/* ── Add Slide Template Menu ── */
+.add-slide-menu {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  padding: 8px;
+  margin-bottom: 8px;
+  z-index: 10;
+}
+
+.add-slide-menu-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.add-slide-menu-item:hover {
+  background: rgba(0, 212, 170, 0.1);
+}
+
+.add-slide-menu-item strong {
+  font-size: 14px;
+}
+
+.add-slide-menu-item span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ── Responsive for new components ── */
+@media (max-width: 768px) {
+  .gd-color-row,
+  .gd-typo-row {
+    flex-direction: column;
+  }
+
+  .gd-size-row {
+    flex-wrap: wrap;
+  }
+
+  .gd-size-row .gd-field {
+    min-width: 45%;
+  }
+}
