@@ -274,8 +274,8 @@
     hex.addEventListener('input', function () {
       if (/^#[0-9A-Fa-f]{6}$/.test(hex.value)) {
         picker.value = hex.value;
+        handleGdChange(field, hex.value);
       }
-      handleGdChange(field, hex.value);
     });
 
     row.appendChild(picker);
@@ -472,7 +472,8 @@
       menu.appendChild(item);
     });
 
-    e.target.parentNode.insertBefore(menu, e.target);
+    var btn = e.currentTarget || e.target;
+    btn.parentNode.insertBefore(menu, btn);
 
     setTimeout(function () {
       document.addEventListener('click', function closeMenu(ev) {
@@ -725,6 +726,9 @@
 
   function syncToPreview() {
     if (!previewEl || !fullDocument) return;
+
+    // Ensure slides array stays in sync with fullDocument
+    fullDocument.presentation_data.slides = outlineData;
 
     try {
       if (typeof window.toNblmYaml === 'function') {

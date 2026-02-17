@@ -170,9 +170,10 @@
   // 2. Mode Tab Switching
   // ──────────────────────────────────────────────
   function setMode(mode) {
-    // When switching away from custom mode, reset step to 1
+    // When switching away from custom mode, reset step and clear editor
     if (mode !== 'custom' && state.mode === 'custom') {
       state.step = 1;
+      if (typeof OutlineEditor !== 'undefined') OutlineEditor.clear();
     }
 
     state.mode = mode;
@@ -183,7 +184,7 @@
     });
 
     dom.stepProgress.classList.remove('hidden');
-    dom.step4Prev.classList.remove('hidden');
+    if (dom.step4Prev) dom.step4Prev.classList.remove('hidden');
 
     if (mode === 'ai') {
       dom.aiInputArea.classList.remove('hidden');
@@ -196,7 +197,7 @@
       dom.aiInputArea.classList.add('hidden');
       dom.textbookInputArea.classList.add('hidden');
       dom.stepProgress.classList.add('hidden');
-      dom.step4Prev.classList.add('hidden');
+      if (dom.step4Prev) dom.step4Prev.classList.add('hidden');
 
       // Initialize empty document and load into editor
       if (typeof OutlineEditor !== 'undefined') {
