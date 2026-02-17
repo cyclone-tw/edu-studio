@@ -9,7 +9,7 @@
   // 1. State Management
   // ──────────────────────────────────────────────
   const state = {
-    mode: 'ai',                // 'ai' | 'textbook'
+    mode: 'ai',                // 'ai' | 'textbook' | 'custom'
     aiInputMode: 'smart',      // 'smart' | 'outline' (for AI mode)
     step: 1,
     presenterRole: null,
@@ -170,6 +170,11 @@
   // 2. Mode Tab Switching
   // ──────────────────────────────────────────────
   function setMode(mode) {
+    // When switching away from custom mode, reset step to 1
+    if (mode !== 'custom' && state.mode === 'custom') {
+      state.step = 1;
+    }
+
     state.mode = mode;
 
     // Toggle active class on tab buttons
@@ -177,16 +182,28 @@
       tab.classList.toggle('active', tab.getAttribute('data-mode') === mode);
     });
 
-    // AI or textbook mode
     dom.stepProgress.classList.remove('hidden');
 
-    // Toggle input areas in step 3
     if (mode === 'ai') {
       dom.aiInputArea.classList.remove('hidden');
       dom.textbookInputArea.classList.add('hidden');
     } else if (mode === 'textbook') {
       dom.aiInputArea.classList.add('hidden');
       dom.textbookInputArea.classList.remove('hidden');
+    } else if (mode === 'custom') {
+      // Custom mode: skip steps, go directly to editor
+      dom.aiInputArea.classList.add('hidden');
+      dom.textbookInputArea.classList.add('hidden');
+      dom.stepProgress.classList.add('hidden');
+
+      // Initialize empty document and load into editor
+      if (typeof OutlineEditor !== 'undefined') {
+        var emptyDoc = OutlineEditor.createEmptyDocument();
+        OutlineEditor.loadOutline(emptyDoc);
+      }
+
+      goToStep(4);
+      return;
     }
 
     // Go to current step (re-render step panels visibility)
