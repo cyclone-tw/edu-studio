@@ -183,6 +183,7 @@
     });
 
     dom.stepProgress.classList.remove('hidden');
+    dom.step4Prev.classList.remove('hidden');
 
     if (mode === 'ai') {
       dom.aiInputArea.classList.remove('hidden');
@@ -195,6 +196,7 @@
       dom.aiInputArea.classList.add('hidden');
       dom.textbookInputArea.classList.add('hidden');
       dom.stepProgress.classList.add('hidden');
+      dom.step4Prev.classList.add('hidden');
 
       // Initialize empty document and load into editor
       if (typeof OutlineEditor !== 'undefined') {
@@ -762,6 +764,7 @@
     });
 
     dom.step4Prev.addEventListener('click', function () {
+      if (state.mode === 'custom') return; // No previous step in custom mode
       goToStep(3);
     });
   }
