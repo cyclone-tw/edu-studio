@@ -31,7 +31,7 @@
   // ──────────────────────────────────────────────
   let isCallingGemini = false;
 
-  async function callGemini(apiKey, prompt) {
+  async function callGemini(apiKey, prompt, files) {
     if (!apiKey) {
       throw new Error('請先設定 Gemini API Key');
     }
@@ -45,11 +45,26 @@
 
     var response;
     try {
+      // Build parts array
+      var parts = [{ text: prompt }];
+
+      // Add file parts for multimodal
+      if (files && files.length > 0) {
+        for (var fi = 0; fi < files.length; fi++) {
+          parts.push({
+            inlineData: {
+              mimeType: files[fi].mimeType,
+              data: files[fi].data  // base64 string (no data URI prefix)
+            }
+          });
+        }
+      }
+
       response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts: parts }],
           generationConfig: {
             temperature: 0.7,
             topP: 0.9,
@@ -118,9 +133,9 @@
   // ──────────────────────────────────────────────
   // generatePresentation — AI 智慧生成模式
   // ──────────────────────────────────────────────
-  async function generatePresentation(text, state) {
-    if (!text || !text.trim()) {
-      throw new Error('請輸入素材內容');
+  async function generatePresentation(text, state, files) {
+    if ((!text || !text.trim()) && (!files || files.length === 0)) {
+      throw new Error('請輸入素材內容或上傳檔案');
     }
     if (!state || !state.apiKey) {
       throw new Error('請先設定 Gemini API Key');
@@ -137,6 +152,18 @@
     var contextLabel = context ? context.label : state.context;
     var styleLabel = style ? style.label : state.visualStyle;
 
+    // Build material section based on whether files are attached
+    var materialSection;
+    if (files && files.length > 0) {
+      materialSection = '## 素材\n\n'
+        + '以下附加了 ' + files.length + ' 個檔案（PDF/音檔等），請分析其內容作為素材。\n';
+      if (text && text.trim()) {
+        materialSection += '使用者另外補充的文字：\n' + text + '\n';
+      }
+    } else {
+      materialSection = '## 素材\n\n' + text + '\n';
+    }
+
     var prompt = '你是一位專業的簡報架構師。根據素材設計簡報，輸出精簡的 JSON。\n\n'
       + '⚠️ 必須恰好 ' + state.slideCount + ' 頁。\n\n'
       + '## 設定\n'
@@ -144,7 +171,7 @@
       + '- 受眾：' + audienceLabel + '（' + audienceTraits + '）\n'
       + '- 場景：' + contextLabel + '\n'
       + '- 視覺風格：' + styleLabel + '\n\n'
-      + '## 素材\n\n' + text + '\n\n'
+      + materialSection + '\n'
       + '## 輸出 JSON 格式\n\n'
       + '{\n'
       + '  "title": "簡報標題",\n'
@@ -169,15 +196,15 @@
       + '- layout_style 必須用英文描述版面排列方式（如 text on left visual on right / 50:50 split / full-width image with text overlay）\n'
       + '- 不要輸出其他欄位';
 
-    return await callGemini(state.apiKey, prompt);
+    return await callGemini(state.apiKey, prompt, files);
   }
 
   // ──────────────────────────────────────────────
   // splitTextbook — 課文忠實模式
   // ──────────────────────────────────────────────
-  async function splitTextbook(text, state) {
-    if (!text || !text.trim()) {
-      throw new Error('請輸入課文內容');
+  async function splitTextbook(text, state, files) {
+    if ((!text || !text.trim()) && (!files || files.length === 0)) {
+      throw new Error('請輸入課文內容或上傳檔案');
     }
     if (!state || !state.apiKey) {
       throw new Error('請先設定 Gemini API Key');
@@ -192,6 +219,18 @@
     var audienceLabel = audience ? audience.label : state.audience;
     var contextLabel = context ? context.label : state.context;
     var styleLabel = style ? style.label : state.visualStyle;
+
+    // Build course section based on whether files are attached
+    var courseSection;
+    if (files && files.length > 0) {
+      courseSection = '## 課文\n\n'
+        + '以下附加了課文檔案，請分析其完整內容。\n';
+      if (text && text.trim()) {
+        courseSection += '使用者另外補充的文字：\n' + text + '\n';
+      }
+    } else {
+      courseSection = '## 課文\n\n' + text;
+    }
 
     var prompt = '你是課文分段專家。將課文原文忠實分配到簡報頁面中。\n\n'
       + '⚠️ 必須恰好 ' + state.slideCount + ' 頁。\n\n'
@@ -229,9 +268,9 @@
       + '- visual_description 要具體描述場景、物件和構圖，不要只寫抽象詞\n'
       + '- layout_style 必須用英文描述版面排列方式（如 text on left visual on right / 50:50 split / full-width image with text overlay）\n'
       + '- 不要輸出其他欄位\n\n'
-      + '## 課文\n\n' + text;
+      + courseSection;
 
-    return await callGemini(state.apiKey, prompt);
+    return await callGemini(state.apiKey, prompt, files);
   }
 
   // ──────────────────────────────────────────────
