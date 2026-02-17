@@ -20,7 +20,9 @@
     language: 'zh-TW',
     interactionLevel: 'medium',
     customPrompt: '',
-    apiKey: localStorage.getItem('gemini_api_key') || ''
+    apiKey: localStorage.getItem('gemini_api_key') || '',
+    uploadedFiles: [],       // Array of { name, mimeType, data, size }
+    textbookFiles: []        // Separate array for textbook mode
   };
 
   // Expose state for other modules (gemini.js etc.)
@@ -53,8 +55,12 @@
     materialText:      $('#materialText'),
     outlineText:       $('#outlineText'),
     textbookText:      $('#textbookText'),
-    materialFile:      $('#materialFile'),
-    fileName:          $('#fileName'),
+    smartDropZone:     $('#smartDropZone'),
+    smartFileInput:    $('#smartFileInput'),
+    smartFileTags:     $('#smartFileTags'),
+    textbookDropZone:  $('#textbookDropZone'),
+    textbookFileInput: $('#textbookFileInput'),
+    textbookFileTags:  $('#textbookFileTags'),
     step1Next:         $('#step1Next'),
     step2Prev:         $('#step2Prev'),
     step2Next:         $('#step2Next'),
@@ -386,29 +392,164 @@
   }
 
   // ──────────────────────────────────────────────
-  // 7. File Upload (AI mode)
+  // 7. File Upload — Drag & Drop
   // ──────────────────────────────────────────────
-  function initFileUpload() {
-    dom.materialFile.addEventListener('change', function () {
-      var file = this.files[0];
-      if (!file) {
-        dom.fileName.textContent = '';
-        return;
+
+  var ALLOWED_TYPES = {
+    'application/pdf': 'PDF',
+    'text/plain': 'TXT',
+    'audio/mpeg': 'MP3',
+    'audio/mp4': 'MP4',
+    'video/mp4': 'MP4',
+    'audio/wav': 'WAV',
+    'audio/x-wav': 'WAV',
+    'audio/ogg': 'OGG',
+    'audio/webm': 'WEBM',
+    'audio/x-m4a': 'M4A',
+    'audio/mp3': 'MP3'
+  };
+
+  var MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+
+  function initDropZone(dropZoneEl, fileInputEl, fileTagsEl, filesArray, filesKey) {
+    if (!dropZoneEl) return;
+
+    // Click to open file picker
+    dropZoneEl.addEventListener('click', function (e) {
+      if (e.target === fileInputEl) return;
+      fileInputEl.click();
+    });
+
+    // File input change
+    fileInputEl.addEventListener('change', function () {
+      handleFiles(this.files, filesArray, filesKey, fileTagsEl);
+      this.value = ''; // Reset so same file can be re-selected
+    });
+
+    // Drag & drop events
+    dropZoneEl.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZoneEl.classList.add('drop-zone-hover');
+    });
+
+    dropZoneEl.addEventListener('dragleave', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZoneEl.classList.remove('drop-zone-hover');
+    });
+
+    dropZoneEl.addEventListener('drop', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZoneEl.classList.remove('drop-zone-hover');
+      handleFiles(e.dataTransfer.files, filesArray, filesKey, fileTagsEl);
+    });
+  }
+
+  function handleFiles(fileList, filesArray, filesKey, fileTagsEl) {
+    for (var i = 0; i < fileList.length; i++) {
+      var file = fileList[i];
+
+      // Validate type
+      var mimeType = file.type;
+      // Fallback: detect from extension if MIME is empty
+      if (!mimeType) {
+        var ext = file.name.split('.').pop().toLowerCase();
+        var extMap = { pdf: 'application/pdf', txt: 'text/plain', mp3: 'audio/mpeg', mp4: 'video/mp4', wav: 'audio/wav', m4a: 'audio/x-m4a', ogg: 'audio/ogg', webm: 'audio/webm' };
+        mimeType = extMap[ext] || '';
       }
 
-      dom.fileName.textContent = file.name;
-
-      var ext = file.name.split('.').pop().toLowerCase();
-
-      if (ext === 'txt') {
-        var reader = new FileReader();
-        reader.onload = function (e) {
-          dom.materialText.value = e.target.result;
-        };
-        reader.readAsText(file, 'UTF-8');
+      if (!ALLOWED_TYPES[mimeType]) {
+        showToast('不支援的檔案格式：' + file.name + '。請上傳 PDF、TXT 或音檔。', 'error');
+        continue;
       }
-      // For PDF, we store the file object — actual extraction
-      // can be handled by gemini.js or a separate utility.
+
+      // Validate size
+      if (file.size > MAX_FILE_SIZE) {
+        showToast('檔案 ' + file.name + ' 超過 20MB 限制', 'error');
+        continue;
+      }
+
+      // Read file
+      (function (f, mime) {
+        if (mime === 'text/plain') {
+          // TXT: read as text, append to textarea
+          var reader = new FileReader();
+          reader.onload = function (ev) {
+            var textarea;
+            if (filesKey === 'uploadedFiles') {
+              textarea = dom.materialText;
+            } else {
+              textarea = dom.textbookText;
+            }
+            if (textarea) {
+              var existing = textarea.value;
+              textarea.value = existing + (existing ? '\n\n' : '') + ev.target.result;
+            }
+            showToast('已載入 ' + f.name + ' 的文字內容', 'success');
+          };
+          reader.readAsText(f, 'UTF-8');
+        } else {
+          // Binary files: read as base64 for Gemini multimodal
+          var reader = new FileReader();
+          reader.onload = function (ev) {
+            // ev.target.result is "data:mime;base64,XXXX"
+            // Strip the prefix to get raw base64
+            var base64 = ev.target.result.split(',')[1];
+
+            state[filesKey].push({
+              name: f.name,
+              mimeType: mime,
+              data: base64,
+              size: f.size
+            });
+
+            renderFileTags(fileTagsEl, state[filesKey], filesKey);
+          };
+          reader.onerror = function () {
+            showToast('檔案 ' + f.name + ' 讀取失敗', 'error');
+          };
+          reader.readAsDataURL(f);
+        }
+      })(file, mimeType);
+    }
+  }
+
+  function renderFileTags(container, filesArray, filesKey) {
+    if (!container) return;
+    container.innerHTML = '';
+
+    filesArray.forEach(function (f, index) {
+      var tag = document.createElement('span');
+      tag.className = 'file-tag';
+
+      var icon = '\u{1F4C4}';
+      if (f.mimeType.startsWith('audio/') || f.mimeType === 'video/mp4') icon = '\u{1F3B5}';
+      if (f.mimeType === 'application/pdf') icon = '\u{1F4D5}';
+
+      var sizeStr = f.size < 1024 * 1024
+        ? Math.round(f.size / 1024) + 'KB'
+        : (f.size / (1024 * 1024)).toFixed(1) + 'MB';
+
+      tag.innerHTML = '<span class="file-tag-icon">' + icon + '</span>'
+        + '<span class="file-tag-name">' + f.name + '</span>'
+        + '<span class="file-tag-size">' + sizeStr + '</span>';
+
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'file-tag-remove';
+      removeBtn.textContent = '\u2715';
+      removeBtn.title = '移除';
+      (function (idx) {
+        removeBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          state[filesKey].splice(idx, 1);
+          renderFileTags(container, state[filesKey], filesKey);
+        });
+      })(index);
+
+      tag.appendChild(removeBtn);
+      container.appendChild(tag);
     });
   }
 
@@ -472,18 +613,24 @@
   // ──────────────────────────────────────────────
   // 9. Generate Button & Export
   // ──────────────────────────────────────────────
-  function getInputText() {
+  function getInputData() {
+    var text = '';
+    var files = [];
+
     if (state.mode === 'ai') {
       if (state.aiInputMode === 'smart') {
-        return (dom.materialText.value || '').trim();
+        text = (dom.materialText.value || '').trim();
+        files = state.uploadedFiles || [];
       } else {
-        return (dom.outlineText.value || '').trim();
+        text = (dom.outlineText.value || '').trim();
+        // Outline mode: no files
       }
+    } else if (state.mode === 'textbook') {
+      text = (dom.textbookText.value || '').trim();
+      files = state.textbookFiles || [];
     }
-    if (state.mode === 'textbook') {
-      return (dom.textbookText.value || '').trim();
-    }
-    return '';
+
+    return { text: text, files: files };
   }
 
   var isGenerating = false; // Prevent double-click
@@ -503,31 +650,31 @@
       }
 
       // Validate input
-      var text = getInputText();
-      if (!text) {
-        showToast('請先輸入或上傳素材', 'error');
+      var input = getInputData();
+      if (!input.text && input.files.length === 0) {
+        showToast('請輸入素材或上傳檔案', 'error');
         return;
       }
 
       isGenerating = true;
       dom.btnGenerate.disabled = true;
-      showLoading('生成中，請稍候...');
+      showLoading(input.files.length > 0 ? '分析檔案中...' : '生成中，請稍候...');
 
       try {
         var result;
 
         if (state.mode === 'ai') {
           if (state.aiInputMode === 'smart' && typeof window.generatePresentation === 'function') {
-            result = await window.generatePresentation(text, state);
+            result = await window.generatePresentation(input.text, state, input.files);
           } else if (state.aiInputMode === 'outline' && typeof window.generateFromOutline === 'function') {
-            result = await window.generateFromOutline(text, state);
+            result = await window.generateFromOutline(input.text, state);
           } else {
             hideLoading();
             showToast('Gemini 模組尚未載入', 'error');
             return;
           }
         } else if (state.mode === 'textbook' && typeof window.splitTextbook === 'function') {
-          result = await window.splitTextbook(text, state);
+          result = await window.splitTextbook(input.text, state, input.files);
         } else {
           hideLoading();
           showToast('Gemini 模組尚未載入', 'error');
@@ -811,7 +958,9 @@
     // Init form controls
     initSlider();
     initFormBindings();
-    initFileUpload();
+    // Init drop zones
+    initDropZone(dom.smartDropZone, dom.smartFileInput, dom.smartFileTags, state.uploadedFiles, 'uploadedFiles');
+    initDropZone(dom.textbookDropZone, dom.textbookFileInput, dom.textbookFileTags, state.textbookFiles, 'textbookFiles');
 
     // Init navigation
     initModeTabs();
