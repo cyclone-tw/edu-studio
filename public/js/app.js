@@ -184,6 +184,12 @@
 
     state.mode = mode;
 
+    // Clear file state on mode switch to prevent stale files
+    state.uploadedFiles.length = 0;
+    state.textbookFiles.length = 0;
+    if (dom.smartFileTags) dom.smartFileTags.innerHTML = '';
+    if (dom.textbookFileTags) dom.textbookFileTags.innerHTML = '';
+
     // Toggle active class on tab buttons
     $$('#modeTabs .mode-tab').forEach(function (tab) {
       tab.classList.toggle('active', tab.getAttribute('data-mode') === mode);
