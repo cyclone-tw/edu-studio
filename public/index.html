@@ -16,10 +16,6 @@
   <!-- js-yaml CDN -->
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
 
-  <!-- pdf.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs" type="module"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs" type="module"></script>
-
   <!-- App CSS -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -225,20 +221,24 @@
 
         <!-- Smart generation input (default) -->
         <div class="ai-input-panel" id="smartInputPanel">
-          <textarea class="form-textarea form-textarea-lg" id="materialText"
-            placeholder="貼上文字素材，AI 將自動分析並生成簡報架構..." rows="10"></textarea>
-          <div class="file-upload-row">
-            <label class="btn btn-secondary btn-upload" for="materialFile">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Drag & drop zone -->
+          <div class="drop-zone" id="smartDropZone">
+            <div class="drop-zone-content">
+              <svg class="drop-zone-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="17 8 12 3 7 8"/>
                 <line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
-              上傳檔案
-            </label>
-            <input type="file" id="materialFile" accept=".pdf,.txt" hidden>
-            <span class="file-name" id="fileName"></span>
+              <p class="drop-zone-text">拖曳檔案至此，支援 PDF、TXT、MP3、MP4、WAV</p>
+              <p class="drop-zone-hint">或點擊此處上傳檔案</p>
+            </div>
+            <input type="file" class="drop-zone-input" id="smartFileInput" multiple accept=".pdf,.txt,.mp3,.mp4,.wav,.m4a,.ogg,.webm" hidden>
           </div>
+          <!-- Uploaded file tags -->
+          <div class="file-tags" id="smartFileTags"></div>
+          <!-- Supplementary text input -->
+          <textarea class="form-textarea form-textarea-lg" id="materialText"
+            placeholder="在這裡補充文字說明（選填），或直接打字作為素材..." rows="6"></textarea>
         </div>
 
         <!-- Outline-based input (hidden by default) -->
@@ -250,8 +250,24 @@
 
       <!-- Textbook mode input -->
       <div class="input-area hidden" id="textbookInputArea">
+        <!-- Drag & drop zone -->
+        <div class="drop-zone" id="textbookDropZone">
+          <div class="drop-zone-content">
+            <svg class="drop-zone-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <p class="drop-zone-text">拖曳課文檔案至此，支援 PDF、TXT、MP3</p>
+            <p class="drop-zone-hint">或點擊此處上傳檔案</p>
+          </div>
+          <input type="file" class="drop-zone-input" id="textbookFileInput" multiple accept=".pdf,.txt,.mp3,.mp4,.wav,.m4a,.ogg,.webm" hidden>
+        </div>
+        <!-- Uploaded file tags -->
+        <div class="file-tags" id="textbookFileTags"></div>
+        <!-- Supplementary text input -->
         <textarea class="form-textarea form-textarea-lg" id="textbookText"
-          placeholder="貼上課文原文（將一字不改地生成簡報）..." rows="10"></textarea>
+          placeholder="貼上課文原文（選填），或直接拖曳課文檔案..." rows="6"></textarea>
       </div>
 
       <div class="step-nav">
