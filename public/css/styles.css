@@ -615,22 +615,112 @@ body {
   display: none;
 }
 
-.file-upload-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
+/* ── Drop Zone ── */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-surface);
+  margin-bottom: 12px;
 }
 
-.btn-upload {
+.drop-zone:hover {
+  border-color: var(--accent);
+  background: rgba(0, 212, 170, 0.03);
+}
+
+.drop-zone-hover {
+  border-color: var(--accent) !important;
+  background: rgba(0, 212, 170, 0.08) !important;
+  box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.15);
+}
+
+.drop-zone-content {
+  pointer-events: none;
+}
+
+.drop-zone-icon {
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.drop-zone-text {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0 0 6px;
+}
+
+.drop-zone-hint {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+
+/* ── File Tags ── */
+.file-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  min-height: 0;
+}
+
+.file-tags:empty {
+  display: none;
+}
+
+.file-tag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: all 0.15s;
 }
 
-.file-name {
-  font-size: 0.85rem;
+.file-tag:hover {
+  border-color: var(--accent);
+}
+
+.file-tag-icon {
+  font-size: 14px;
+}
+
+.file-tag-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-tag-size {
   color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.file-tag-remove {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 2px;
+  margin-left: 2px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.file-tag-remove:hover {
+  color: #e74c3c;
 }
 
 .btn-generate {
@@ -1722,6 +1812,18 @@ body {
 
   .toast {
     max-width: 300px;
+  }
+
+  .drop-zone {
+    padding: 24px 16px;
+  }
+
+  .drop-zone-text {
+    font-size: 13px;
+  }
+
+  .file-tag-name {
+    max-width: 100px;
   }
 }
 
