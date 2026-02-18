@@ -20,9 +20,9 @@
   <style>
     /* ebook 工具專用樣式 */
     .ebook-container {
-      max-width: 900px;
+      max-width: 1440px;
       margin: 0 auto;
-      padding: 2rem;
+      padding: 1.5rem 2rem;
     }
     .tool-header {
       text-align: center;
@@ -36,14 +36,13 @@
     .tool-header p {
       color: var(--text-secondary);
     }
+
+    /* ── 上傳區 ── */
     .upload-section {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1.5rem;
       margin-bottom: 2rem;
-    }
-    @media (max-width: 600px) {
-      .upload-section { grid-template-columns: 1fr; }
     }
     .upload-card {
       background: var(--bg-card);
@@ -54,10 +53,7 @@
       transition: border-color var(--transition);
     }
     .upload-card.required { border-color: var(--accent); }
-    .upload-card h3 {
-      margin-bottom: 0.5rem;
-      font-size: 1rem;
-    }
+    .upload-card h3 { margin-bottom: 0.5rem; font-size: 1rem; }
     .upload-card p {
       color: var(--text-secondary);
       font-size: 0.85rem;
@@ -66,12 +62,12 @@
     .upload-card input[type="file"] { display: none; }
     .upload-btn {
       display: inline-block;
-      padding: 0.5rem 1.2rem;
+      padding: 0.6rem 1.4rem;
       background: var(--bg-surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       cursor: pointer;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       transition: all var(--transition);
     }
     .upload-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -81,17 +77,16 @@
       color: var(--text-secondary);
     }
     .upload-status.success { color: var(--success); }
-    .upload-status.error { color: var(--danger); }
+    .upload-status.error   { color: var(--danger); }
+
+    /* ── 設定區 ── */
     .settings-section {
       background: var(--bg-card);
       border-radius: var(--radius);
       padding: 1.5rem;
       margin-bottom: 2rem;
     }
-    .settings-section h3 {
-      margin-bottom: 1rem;
-      color: var(--accent);
-    }
+    .settings-section h3 { margin-bottom: 1rem; color: var(--accent); }
     .setting-row {
       display: flex;
       align-items: center;
@@ -99,7 +94,7 @@
       margin-bottom: 1rem;
     }
     .setting-row label {
-      min-width: 120px;
+      min-width: 100px;
       color: var(--text-secondary);
       font-size: 0.9rem;
     }
@@ -109,22 +104,18 @@
       background: var(--bg-surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      padding: 0.5rem 0.75rem;
+      padding: 0.6rem 0.75rem;
       color: var(--text-primary);
       font-family: var(--font);
-      font-size: 0.9rem;
+      font-size: 0.95rem;
     }
     .toggle-row {
       display: flex;
       align-items: center;
       gap: 1rem;
     }
-    .toggle-row label { min-width: 120px; color: var(--text-secondary); font-size: 0.9rem; }
-    .toggle {
-      position: relative;
-      width: 48px;
-      height: 26px;
-    }
+    .toggle-row label { min-width: 100px; color: var(--text-secondary); font-size: 0.9rem; }
+    .toggle { position: relative; width: 48px; height: 26px; }
     .toggle input { opacity: 0; width: 0; height: 0; }
     .toggle-slider {
       position: absolute;
@@ -149,31 +140,34 @@
       background: white;
       transform: translateX(22px);
     }
-    .preview-section {
-      margin-bottom: 2rem;
-    }
-    .preview-section h3 {
-      color: var(--accent);
-      margin-bottom: 1rem;
-    }
+
+    /* ── 預覽區 ── */
+    .preview-section { margin-bottom: 2rem; }
+    .preview-section h3 { color: var(--accent); margin-bottom: 1rem; }
     .preview-empty {
       text-align: center;
       color: var(--text-secondary);
       padding: 3rem;
       background: var(--bg-card);
       border-radius: var(--radius);
+      line-height: 2;
     }
+
+    /* 桌機：3 欄 */
     .preview-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
     }
+
     .page-card {
       background: var(--bg-card);
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius);
       overflow: hidden;
       border: 1px solid var(--border);
+      transition: border-color var(--transition);
     }
+    .page-card:hover { border-color: var(--accent); }
     .page-thumbnail {
       width: 100%;
       aspect-ratio: 16/9;
@@ -181,40 +175,61 @@
       display: block;
       background: #111;
     }
-    .page-card-body {
-      padding: 0.75rem;
-    }
+    .page-card-body { padding: 1rem; }
     .page-num {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       color: var(--text-secondary);
-      margin-bottom: 0.4rem;
-    }
-    .page-field {
       margin-bottom: 0.6rem;
-    }
-    .page-field-label {
-      font-size: 0.72rem;
-      color: var(--accent);
-      margin-bottom: 0.25rem;
       font-weight: 500;
+    }
+    .page-field { margin-bottom: 0.75rem; }
+    .page-field-label {
+      font-size: 0.78rem;
+      color: var(--accent);
+      margin-bottom: 0.3rem;
+      font-weight: 600;
     }
     .page-text-input {
       width: 100%;
       background: var(--bg-surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      padding: 0.5rem;
+      padding: 0.6rem 0.7rem;
       color: var(--text-primary);
       font-family: var(--font);
-      font-size: 0.8rem;
+      font-size: 0.88rem;
       resize: vertical;
-      min-height: 48px;
+      min-height: 64px;
+      line-height: 1.5;
       transition: border-color var(--transition);
     }
     .page-text-input:focus {
       outline: none;
       border-color: var(--accent);
     }
+
+    /* ── 平板：2 欄（≤ 1024px）── */
+    @media (max-width: 1024px) {
+      .ebook-container { padding: 1.25rem 1.25rem; }
+      .preview-grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+      .page-text-input { min-height: 72px; font-size: 0.92rem; }
+    }
+
+    /* ── 手機：1 欄（≤ 600px）── */
+    @media (max-width: 600px) {
+      .ebook-container { padding: 1rem 0.75rem; }
+      .upload-section { grid-template-columns: 1fr; gap: 1rem; }
+      .tool-header h1 { font-size: 1.4rem; }
+      .preview-grid { grid-template-columns: 1fr; gap: 1rem; }
+      .page-text-input { min-height: 80px; font-size: 1rem; }
+      .page-card-body { padding: 0.9rem; }
+      .setting-row { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+      .setting-row label { min-width: unset; }
+      .setting-row input[type="text"],
+      .setting-row select { width: 100%; }
+      .upload-btn { padding: 0.7rem 1.6rem; font-size: 1rem; }
+    }
+
     .generate-section {
       text-align: center;
       padding: 1rem;
