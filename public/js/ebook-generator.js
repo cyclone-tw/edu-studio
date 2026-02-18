@@ -390,3 +390,44 @@ document.addEventListener('keydown', (e) => {
 </body>
 </html>`;
 }
+
+// ── 下載 HTML ─────────────────────────────────────────────────────────
+function downloadHTML(html, filename) {
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// ── 生成按鈕 ──────────────────────────────────────────────────────────
+generateBtn.addEventListener('click', async () => {
+  if (state.pages.length === 0) return;
+
+  generateBtn.disabled    = true;
+  generateBtn.textContent = '⏳ 生成中...';
+  progressBar.style.display = 'block';
+  progressFill.style.width  = '50%';
+
+  try {
+    const html = await assembleHTML();
+    progressFill.style.width = '100%';
+
+    const title    = document.getElementById('book-title').value.trim() || '我的電子書';
+    const filename = title.replace(/[^\w\u4e00-\u9fff-]/g, '_') + '.html';
+    downloadHTML(html, filename);
+
+  } catch (err) {
+    alert(`生成失敗：${err.message}`);
+    console.error('[ebook] generate error:', err);
+  } finally {
+    generateBtn.disabled    = false;
+    generateBtn.textContent = '生成並下載電子書 HTML';
+    progressBar.style.display = 'none';
+    progressFill.style.width  = '0%';
+  }
+});
