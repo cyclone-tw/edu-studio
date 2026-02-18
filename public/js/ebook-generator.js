@@ -125,3 +125,41 @@ yamlInput.addEventListener('change', async (e) => {
     console.error('[ebook] YAML parse error:', err);
   }
 });
+
+// ── 預覽渲染 ──────────────────────────────────────────────────────────
+function renderPreview() {
+  previewEmpty.style.display = 'none';
+  previewGrid.style.display  = 'grid';
+  previewGrid.innerHTML = '';
+
+  state.pages.forEach((page, i) => {
+    const card = document.createElement('div');
+    card.className = 'page-card';
+
+    const img = document.createElement('img');
+    img.className = 'page-thumbnail';
+    img.src = page.img;
+    img.alt = `第 ${i + 1} 頁`;
+
+    const body = document.createElement('div');
+    body.className = 'page-card-body';
+
+    const num = document.createElement('div');
+    num.className = 'page-num';
+    num.textContent = `第 ${i + 1} 頁`;
+
+    const textarea = document.createElement('textarea');
+    textarea.className = 'page-text-input';
+    textarea.placeholder = '輸入此頁的語音朗讀文字...';
+    textarea.value = page.text;
+    textarea.addEventListener('input', () => {
+      state.pages[i].text = textarea.value;
+    });
+
+    body.appendChild(num);
+    body.appendChild(textarea);
+    card.appendChild(img);
+    card.appendChild(body);
+    previewGrid.appendChild(card);
+  });
+}
