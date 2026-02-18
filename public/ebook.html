@@ -165,7 +165,7 @@
     }
     .preview-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 1rem;
     }
     .page-card {
@@ -189,6 +189,15 @@
       color: var(--text-secondary);
       margin-bottom: 0.4rem;
     }
+    .page-field {
+      margin-bottom: 0.6rem;
+    }
+    .page-field-label {
+      font-size: 0.72rem;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+      font-weight: 500;
+    }
     .page-text-input {
       width: 100%;
       background: var(--bg-surface);
@@ -199,7 +208,12 @@
       font-family: var(--font);
       font-size: 0.8rem;
       resize: vertical;
-      min-height: 60px;
+      min-height: 48px;
+      transition: border-color var(--transition);
+    }
+    .page-text-input:focus {
+      outline: none;
+      border-color: var(--accent);
     }
     .generate-section {
       text-align: center;
@@ -305,7 +319,10 @@
     <div class="preview-section">
       <h3>頁面預覽 & 語音文字</h3>
       <div class="preview-empty" id="preview-empty">
-        上傳 PDF 後，頁面縮圖會顯示在這裡
+        上傳 PDF 後，每頁縮圖會顯示在這裡<br>
+        <span style="font-size:0.82rem;color:var(--text-secondary)">
+          上傳 YAML 可自動填入文字；沒有 YAML 也可在下方直接手動填寫每頁的朗讀文字
+        </span>
       </div>
       <div class="preview-grid" id="preview-grid" style="display:none"></div>
     </div>

@@ -7,8 +7,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 
 // ── 狀態 ──────────────────────────────────────────────────────────────
 const state = {
-  pages: [],      // [{ img, text(全文), textBody(純內文) }]
-  slideTexts: [], // [{ full: '標題+內文', body: '純內文' }]
+  pages: [],      // [{ img, textTitle(標題+副標), textBody(純內文) }]
+  slideTexts: [], // [{ title: '標題+副標', body: '純內文' }]
 };
 
 // ── DOM 元素 ──────────────────────────────────────────────────────────
@@ -55,9 +55,9 @@ pdfInput.addEventListener('change', async (e) => {
       }).promise;
 
       const base64 = canvas.toDataURL('image/jpeg', 0.85);
-      const st = state.slideTexts[i - 1] || { full: '', body: '' };
+      const st = state.slideTexts[i - 1] || { title: '', body: '' };
 
-      state.pages.push({ img: base64, text: st.full, textBody: st.body });
+      state.pages.push({ img: base64, textTitle: st.title, textBody: st.body });
 
       // 更新進度
       const pct = Math.round((i / totalPages) * 100);
@@ -114,9 +114,9 @@ yamlInput.addEventListener('change', async (e) => {
         c.title    || slide.title,
         c.subtitle || slide.subtitle,
       ].filter(p => p && typeof p === 'string');
+      const title = titleParts.join('。');
 
-      const full = [...titleParts, body].filter(Boolean).join('。');
-      return { full, body };
+      return { title, body };
     });
 
     yamlStatus.textContent = `✓ 已載入 ${state.slideTexts.length} 頁文字`;
@@ -125,9 +125,9 @@ yamlInput.addEventListener('change', async (e) => {
     // 若 PDF 已載入，更新每頁文字（不覆蓋手動編輯過的內容）
     if (state.pages.length > 0) {
       state.pages.forEach((page, i) => {
-        const st = state.slideTexts[i] || { full: '', body: '' };
-        if (!page.text)     page.text     = st.full;
-        if (!page.textBody) page.textBody = st.body;
+        const st = state.slideTexts[i] || { title: '', body: '' };
+        if (!page.textTitle) page.textTitle = st.title;
+        if (!page.textBody)  page.textBody  = st.body;
       });
       renderPreview();
     }
@@ -140,6 +140,25 @@ yamlInput.addEventListener('change', async (e) => {
 });
 
 // ── 預覽渲染 ──────────────────────────────────────────────────────────
+function makeField(label, value, placeholder, onChange) {
+  const wrap = document.createElement('div');
+  wrap.className = 'page-field';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'page-field-label';
+  lbl.textContent = label;
+
+  const ta = document.createElement('textarea');
+  ta.className = 'page-text-input';
+  ta.placeholder = placeholder;
+  ta.value = value || '';
+  ta.addEventListener('input', () => onChange(ta.value));
+
+  wrap.appendChild(lbl);
+  wrap.appendChild(ta);
+  return wrap;
+}
+
 function renderPreview() {
   previewEmpty.style.display = 'none';
   previewGrid.style.display  = 'grid';
@@ -154,25 +173,32 @@ function renderPreview() {
     img.src = page.img;
     img.alt = `第 ${i + 1} 頁`;
 
-    const body = document.createElement('div');
-    body.className = 'page-card-body';
+    const cardBody = document.createElement('div');
+    cardBody.className = 'page-card-body';
 
     const num = document.createElement('div');
     num.className = 'page-num';
     num.textContent = `第 ${i + 1} 頁`;
 
-    const textarea = document.createElement('textarea');
-    textarea.className = 'page-text-input';
-    textarea.placeholder = '輸入此頁的語音朗讀文字...';
-    textarea.value = page.text;
-    textarea.addEventListener('input', () => {
-      state.pages[i].text = textarea.value;
-    });
+    const titleField = makeField(
+      '📌 標題文字',
+      page.textTitle,
+      '（選填）此頁標題，開啟「朗讀標題」時會唸',
+      (v) => { state.pages[i].textTitle = v; }
+    );
 
-    body.appendChild(num);
-    body.appendChild(textarea);
+    const bodyField = makeField(
+      '📝 內文',
+      page.textBody,
+      '此頁內文，關閉「朗讀標題」時只唸這段',
+      (v) => { state.pages[i].textBody = v; }
+    );
+
+    cardBody.appendChild(num);
+    cardBody.appendChild(titleField);
+    cardBody.appendChild(bodyField);
     card.appendChild(img);
-    card.appendChild(body);
+    card.appendChild(cardBody);
     previewGrid.appendChild(card);
   });
 }
@@ -198,9 +224,9 @@ async function assembleHTML() {
   // 組裝每頁資料（JSON 格式，嵌入 HTML）
   const pagesJSON = JSON.stringify(
     state.pages.map((p) => ({
-      img:      p.img,
-      text:     p.text     || '',   // 全文（標題+內文）
-      textBody: p.textBody || '',   // 純內文
+      img:       p.img,
+      textTitle: p.textTitle || '',  // 標題+副標
+      textBody:  p.textBody  || '',  // 純內文
     }))
   );
 
@@ -441,10 +467,12 @@ function initFlip() {
 function getReadText(idx) {
   const p = PAGES[idx];
   if (!p) return '';
-  // 「朗讀標題」開：用全文；關：用純內文（若無純內文則 fallback 全文）
-  return chkTitle.checked
-    ? (p.text     || '')
-    : (p.textBody || p.text || '');
+  if (chkTitle.checked) {
+    // 標題＋內文（以句號連接，避免唸在一起）
+    return [p.textTitle, p.textBody].filter(Boolean).join('。');
+  }
+  // 只唸內文；若內文空則 fallback 標題
+  return p.textBody || p.textTitle || '';
 }
 
 function updateUI(idx) {
