@@ -89,22 +89,31 @@ yamlInput.addEventListener('change', async (e) => {
     const text = await file.text();
     const doc = jsyaml.load(text);
 
-    if (!doc?.slides || !Array.isArray(doc.slides)) {
-      throw new Error('找不到 slides 陣列，請確認 YAML 格式');
+    // 支援兩種 YAML 結構：頂層 slides 或 presentation_data.slides
+    const slidesArr = doc?.slides || doc?.presentation_data?.slides;
+    if (!slidesArr || !Array.isArray(slidesArr)) {
+      throw new Error('找不到 slides 陣列（支援頂層 slides 或 presentation_data.slides）');
     }
 
-    // 依 slide_number 排序，組合 TTS 文字
-    const sorted = [...doc.slides].sort(
-      (a, b) => (a.slide_number || 0) - (b.slide_number || 0)
+    // 依 slide_number 排序（無 slide_number 則保持原順序）
+    const sorted = [...slidesArr].sort(
+      (a, b) => (a.slide_number ?? Infinity) - (b.slide_number ?? Infinity)
     );
 
     state.slideTexts = sorted.map((slide) => {
+      // 支援兩種文字結構：
+      //   舊格式：slide.title / slide.subtitle / slide.body
+      //   新格式：slide.content.title / slide.content.subtitle / slide.content.key_points[]
+      const c = slide.content || {};
+      const keyPoints = Array.isArray(c.key_points)
+        ? c.key_points.filter(Boolean).join('。')
+        : (c.key_points || '');
+
       const parts = [
-        slide.title,
-        slide.subtitle,
-        slide.content,
-        slide.body,
-      ].filter(Boolean);
+        c.title    || slide.title,
+        c.subtitle || slide.subtitle,
+        keyPoints  || c.body || slide.body || slide.content,
+      ].filter(p => p && typeof p === 'string');
       return parts.join('。');
     });
 
