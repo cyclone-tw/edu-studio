@@ -715,21 +715,24 @@
    */
   function generateFilename(extension) {
     var yamlContent = dom.yamlPreview.value;
-    var title = 'presentation';
+    var title = '簡報大綱';
 
     try {
       var data = jsyaml.load(yamlContent);
-      if (data && data.title) {
+      if (data && data.presentation_data && data.presentation_data.suggested_filename) {
+        title = data.presentation_data.suggested_filename;
+      } else if (data && data.presentation_data && data.presentation_data.slides && data.presentation_data.slides[0]) {
+        var firstSlide = data.presentation_data.slides[0];
+        title = (firstSlide.content && firstSlide.content.title) || firstSlide.title || '簡報大綱';
+      } else if (data && data.title) {
         title = data.title;
-      } else if (Array.isArray(data) && data[0] && data[0].title) {
-        title = data[0].title;
       }
     } catch (e) {
       var lines = yamlContent.split('\n');
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i].trim();
-        if (line.startsWith('title:')) {
-          title = line.replace('title:', '').trim().replace(/^['"]|['"]$/g, '');
+        if (line.startsWith('suggested_filename:')) {
+          title = line.replace('suggested_filename:', '').trim().replace(/^['"]|['"]$/g, '');
           break;
         }
       }
@@ -770,9 +773,9 @@
         showToast('沒有可下載的內容', 'error');
         return;
       }
-      var filename = generateFilename('yaml');
-      downloadFile(content, filename, 'text/yaml');
-      showToast('YAML 已下載', 'success');
+      var filename = generateFilename('txt');
+      downloadFile(content, filename, 'text/plain');
+      showToast('已下載（.txt 格式，可直接匯入 NotebookLM）', 'success');
     });
 
     dom.btnDownloadMd.addEventListener('click', function () {
