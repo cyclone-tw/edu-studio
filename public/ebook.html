@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>電子書生成工具｜Cyclone</title>
+  <link rel="icon" type="image/png" href="dragon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- PDF.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.9.155/build/pdf.min.mjs" type="module" id="pdfjs-script"></script>
+
+  <!-- js-yaml CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
+
+  <!-- 共用樣式 -->
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* ebook 工具專用樣式 */
+    .ebook-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .tool-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .tool-header h1 {
+      font-size: 1.8rem;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .tool-header p {
+      color: var(--text-secondary);
+    }
+    .upload-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 600px) {
+      .upload-section { grid-template-columns: 1fr; }
+    }
+    .upload-card {
+      background: var(--bg-card);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      text-align: center;
+      transition: border-color var(--transition);
+    }
+    .upload-card.required { border-color: var(--accent); }
+    .upload-card h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+    .upload-card p {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .upload-card input[type="file"] { display: none; }
+    .upload-btn {
+      display: inline-block;
+      padding: 0.5rem 1.2rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all var(--transition);
+    }
+    .upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .upload-status {
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .upload-status.success { color: var(--success); }
+    .upload-status.error { color: var(--danger); }
+    .settings-section {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .settings-section h3 {
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .setting-row label {
+      min-width: 120px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    .setting-row input[type="text"],
+    .setting-row select {
+      flex: 1;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.75rem;
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 0.9rem;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .toggle-row label { min-width: 120px; color: var(--text-secondary); font-size: 0.9rem; }
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 26px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      left: 3px; top: 3px;
+      background: var(--text-secondary);
+      border-radius: 50%;
+      transition: all var(--transition);
+    }
+    .toggle input:checked + .toggle-slider { background: var(--accent); }
+    .toggle input:checked + .toggle-slider::before {
+      background: white;
+      transform: translateX(22px);
+    }
+    .preview-section {
+      margin-bottom: 2rem;
+    }
+    .preview-section h3 {
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+    .preview-empty {
+      text-align: center;
+      color: var(--text-secondary);
+      padding: 3rem;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .page-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .page-thumbnail {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      display: block;
+      background: #111;
+    }
+    .page-card-body {
+      padding: 0.75rem;
+    }
+    .page-num {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.4rem;
+    }
+    .page-text-input {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem;
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 0.8rem;
+      resize: vertical;
+      min-height: 60px;
+    }
+    .generate-section {
+      text-align: center;
+      padding: 1rem;
+    }
+    .generate-btn {
+      padding: 0.9rem 2.5rem;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .generate-btn:hover { background: var(--accent-hover); transform: translateY(-2px); }
+    .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .progress-bar {
+      width: 100%;
+      max-width: 400px;
+      margin: 1rem auto 0;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+      transition: color var(--transition);
+    }
+    .nav-back:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="ebook-container">
+
+    <a href="/" class="nav-back">&larr; 返回簡報生成助手</a>
+
+    <div class="tool-header">
+      <h1>電子書生成工具</h1>
+      <p>上傳 NotebookLM 產出的 PDF 簡報，生成含翻頁動畫與語音朗讀的電子書</p>
+    </div>
+
+    <!-- Step 1: 上傳 -->
+    <div class="upload-section">
+      <div class="upload-card required">
+        <h3>PDF 簡報 <span style="color:var(--danger)">*</span></h3>
+        <p>NotebookLM 產出的 PDF 檔案</p>
+        <label class="upload-btn" for="pdf-input">選擇 PDF</label>
+        <input type="file" id="pdf-input" accept=".pdf">
+        <div class="upload-status" id="pdf-status">尚未選擇檔案</div>
+      </div>
+      <div class="upload-card">
+        <h3>YAML 大綱 <span style="color:var(--text-secondary)">(選填)</span></h3>
+        <p>用於自動填入每頁語音文字</p>
+        <label class="upload-btn" for="yaml-input">選擇 YAML</label>
+        <input type="file" id="yaml-input" accept=".yaml,.yml">
+        <div class="upload-status" id="yaml-status">尚未選擇（語音文字需手動填寫）</div>
+      </div>
+    </div>
+
+    <!-- Step 2: 設定 -->
+    <div class="settings-section">
+      <h3>電子書設定</h3>
+      <div class="setting-row">
+        <label>書名</label>
+        <input type="text" id="book-title" placeholder="我的電子書" value="我的電子書">
+      </div>
+      <div class="setting-row">
+        <label>語音語言</label>
+        <select id="tts-lang">
+          <option value="zh-TW">繁體中文（zh-TW）</option>
+          <option value="zh-CN">簡體中文（zh-CN）</option>
+          <option value="en-US">English（en-US）</option>
+          <option value="ja-JP">日本語（ja-JP）</option>
+        </select>
+      </div>
+      <div class="toggle-row">
+        <label>翻頁自動朗讀</label>
+        <label class="toggle">
+          <input type="checkbox" id="auto-play">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Step 3: 預覽 + 編輯 TTS 文字 -->
+    <div class="preview-section">
+      <h3>頁面預覽 & 語音文字</h3>
+      <div class="preview-empty" id="preview-empty">
+        上傳 PDF 後，頁面縮圖會顯示在這裡
+      </div>
+      <div class="preview-grid" id="preview-grid" style="display:none"></div>
+    </div>
+
+    <!-- Step 4: 生成 -->
+    <div class="generate-section">
+      <button class="generate-btn" id="generate-btn" disabled>
+        生成並下載電子書 HTML
+      </button>
+      <div class="progress-bar" id="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="js/ebook-generator.js"></script>
+</body>
+</html>
