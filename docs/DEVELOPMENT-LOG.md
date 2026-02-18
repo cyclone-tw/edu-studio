@@ -1,5 +1,158 @@
 # 開發日誌 (Development Log)
 
+---
+
+## 2026-02-18 - v2.3.0 有聲電子書生成器 & 品牌改版
+
+### 開發時程
+- **日期**: 2026-02-18
+- **主要功能**: 有聲電子書生成工具（全新）
+- **協作模式**: 互動式需求釐清 → 設計文件 → Parallel Session 執行
+
+### 需求來源
+用戶提出複合需求：
+1. 以 PDF 簡報為基礎，生成含翻頁動畫與 TTS 語音的電子書
+2. 輸出為單一可攜帶 HTML 檔案，可嵌入 Notion 等平台
+3. 下載格式改為 `.txt`（NotebookLM 相容）
+4. 網站品牌更名為 **Cyclone Studio - AI 教材製作**
+
+### 開發流程
+
+#### Phase 1: 需求分析與設計
+- 使用 `superpowers:brainstorming` 逐步釐清需求
+- 關鍵決策確認：
+  - TTS 來源：Web Speech API（可插拔，未來可換 ElevenLabs/OpenAI TTS）
+  - TTS 文字：自動載入投影片 title+subtitle+body，可手動修改
+  - 整合方式：方案 B（上傳 PDF + 選填 YAML），無需保持視窗開著
+  - Notion 嵌入：使用者下載後自行上傳 GitHub Pages
+- GitHub 搜尋評估翻頁函式庫，選定 **StPageFlip 2.0.7**（MIT、44KB、無依賴）
+- 建立設計文件：`docs/plans/2026-02-18-ebook-tts-design.md`
+- 建立實作計畫：`docs/plans/2026-02-18-ebook-tts-implementation.md`（9 個 Tasks）
+
+#### Phase 2: 核心功能實作
+**Task 1: StPageFlip Bundle**
+- 下載 `page-flip.browser.js` 存至 `public/js/`
+- Commit: `feat: add StPageFlip browser bundle`
+
+**Task 2-3: ebook.html 骨架 + PDF 載入**
+- 完整暗色主題 UI：上傳區、設定區、預覽區、生成按鈕
+- PDF.js 4.9 瀏覽器端渲染（scale 2.0 高解析度），JPEG 85% 壓縮
+- 進度條顯示每頁渲染進度
+- Commits: `feat: add ebook generator HTML skeleton`, `feat: implement PDF loading`
+
+**Task 4-5: YAML 解析 + 預覽 UI**
+- 解析 YAML 的 `slides` 或 `presentation_data.slides`（兩種路徑兼容）
+- 萃取 `content.title`、`content.subtitle`、`content.key_points[]`
+- 預覽網格顯示縮圖 + 可編輯 textarea
+- Commits: `feat: implement YAML parsing`, `feat: add page preview grid`
+
+**Task 6-7: HTML 組裝器 + 下載**
+- `assembleHTML()` 組裝完整輸出 HTML：
+  - `fetch('/js/page-flip.browser.js')` inline 進 `<script>` 標籤
+  - 每頁圖片 base64 + TTS 文字 embedded 為 JSON
+  - Web Speech API 邏輯 + 鍵盤支援
+- Blob 下載觸發
+- Commits: `feat: implement HTML assembler`, `feat: add generate button and download`
+
+**Task 8: 主頁入口連結**
+- Header 加「📖 電子書工具」連結
+- Commit: `feat: add ebook tool entry link`
+
+#### Phase 3: Bug 修復 & 優化
+
+**Bug 1: YAML 找不到 slides 陣列**
+- 原因：程式碼找 `doc.slides`，實際格式是 `doc.presentation_data.slides`
+- 同時修正文字路徑：`slide.content.title` / `slide.content.key_points[]`
+- Commit: `fix: support presentation_data.slides and nested content fields`
+
+**Bug 2: 雙頁顯示 + 偶數頁 TTS 唸不到**
+- 原因：StPageFlip 預設雙頁展開書模式
+- 修正：`usePortrait: true` 強制單頁模式
+- 同時修正：全視窗響應式、速度 slider、resize 自動重建
+- Commit: `fix: single-page mode, full-viewport responsive, TTS speed control`
+
+**優化：TTS 朗讀模式切換**
+- 新增「朗讀標題」checkbox：開啟唸全文，關閉只唸內文
+- `textTitle`、`textBody` 分開儲存，`getReadText()` 依模式組合
+- Commit: `feat: add title/body TTS mode toggle`
+
+**優化：預覽欄位分離**
+- 預覽由單一 textarea 改為兩個有標籤的欄位（📌 標題文字 / 📝 內文）
+- 支援無 YAML 純手動填寫
+- Commit: `feat: split TTS preview into title/body fields`
+
+**優化：電子書編輯器響應式版面**
+- `max-width: 900px` → `max-width: 1440px`
+- grid 改為三斷點：桌機 3 欄、平板 2 欄（≤1024px）、手機 1 欄（≤600px）
+- Commit: `fix: responsive ebook editor layout`
+
+#### Phase 4: 簡報工具改進
+- 下載格式 `.yaml` → `.txt`（NotebookLM 相容）
+- 檔名改用 `presentation_data.suggested_filename` 命名
+- Commit: `fix: use suggested_filename for downloads, change to .txt format`
+
+#### Phase 5: 品牌改版 & 文件
+- 網站標題更名為 **Cyclone Studio - AI 教材製作**
+- 更新 `index.html`、`ebook.html` title 標籤
+- 重寫 `README.md`（完整功能描述）
+- 更新 `DEVELOPMENT-LOG.md`
+
+### 技術亮點
+
+#### 1. 完全自給自足的 HTML 輸出
+```javascript
+// 組裝時 fetch StPageFlip 原始碼 inline 進 <script>
+const libRes = await fetch('/js/page-flip.browser.js');
+const pageFlipLib = await libRes.text();
+
+// 圖片 base64 + TTS 文字 embedded 為 JSON
+const pagesJSON = JSON.stringify(
+  state.pages.map(p => ({ img: p.img, textTitle: p.textTitle, textBody: p.textBody }))
+);
+```
+
+#### 2. 響應式書本尺寸計算
+```javascript
+function calcSize() {
+  const aw = bookCont.clientWidth;
+  const ah = bookCont.clientHeight;
+  if (aw / ah >= 16 / 9) {
+    return { w: Math.floor(ah * 16 / 9), h: ah };
+  }
+  return { w: aw, h: Math.floor(aw * 9 / 16) };
+}
+```
+
+#### 3. 可插拔 TTS 架構
+```javascript
+const tts = {
+  provider: 'webSpeech', // 未來可換成 'openai' / 'elevenlabs'
+  speak(text) {
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = TTS_LANG;
+    utt.rate = parseFloat(speedSlider.value);
+    speechSynthesis.speak(utt);
+  }
+};
+```
+
+#### 4. YAML 雙路徑兼容
+```javascript
+const slidesArr = doc?.slides || doc?.presentation_data?.slides;
+```
+
+### 提交統計
+- 總 Commits：約 12 個
+- 新增檔案：`ebook.html`、`ebook-generator.js`、`page-flip.browser.js`、2 份設計文件
+- 修改檔案：`app.js`、`styles.css`
+
+### 已知限制
+- Web Speech API 在部分 iframe 環境（如 Notion embed）可能受限（瀏覽器安全政策）
+- 生成的 HTML 含 base64 圖片，20 頁 PDF 約 3-8MB
+- `fetch('/js/page-flip.browser.js')` 需從 HTTP 伺服器存取（`file://` 協定不可用）
+
+---
+
 ## 2026-02-16 - v2.0.0 編輯器重大改版
 
 ### 開發時程
