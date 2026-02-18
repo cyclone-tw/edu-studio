@@ -76,3 +76,52 @@ pdfInput.addEventListener('change', async (e) => {
     console.error('[ebook] PDF load error:', err);
   }
 });
+
+// ── YAML 解析 ─────────────────────────────────────────────────────────
+yamlInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  yamlStatus.textContent = '解析中...';
+  yamlStatus.className = 'upload-status';
+
+  try {
+    const text = await file.text();
+    const doc = jsyaml.load(text);
+
+    if (!doc?.slides || !Array.isArray(doc.slides)) {
+      throw new Error('找不到 slides 陣列，請確認 YAML 格式');
+    }
+
+    // 依 slide_number 排序，組合 TTS 文字
+    const sorted = [...doc.slides].sort(
+      (a, b) => (a.slide_number || 0) - (b.slide_number || 0)
+    );
+
+    state.slideTexts = sorted.map((slide) => {
+      const parts = [
+        slide.title,
+        slide.subtitle,
+        slide.content,
+        slide.body,
+      ].filter(Boolean);
+      return parts.join('。');
+    });
+
+    yamlStatus.textContent = `✓ 已載入 ${state.slideTexts.length} 頁文字`;
+    yamlStatus.className = 'upload-status success';
+
+    // 若 PDF 已載入，更新每頁文字
+    if (state.pages.length > 0) {
+      state.pages.forEach((page, i) => {
+        if (!page.text) page.text = state.slideTexts[i] || '';
+      });
+      renderPreview();
+    }
+
+  } catch (err) {
+    yamlStatus.textContent = `✗ 解析失敗：${err.message}`;
+    yamlStatus.className = 'upload-status error';
+    console.error('[ebook] YAML parse error:', err);
+  }
+});
