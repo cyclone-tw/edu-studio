@@ -163,3 +163,230 @@ function renderPreview() {
     previewGrid.appendChild(card);
   });
 }
+
+// ── HTML 組裝 ─────────────────────────────────────────────────────────
+async function assembleHTML() {
+  // 讀取 StPageFlip bundle（從本地伺服器）
+  const libRes = await fetch('/js/page-flip.browser.js');
+  if (!libRes.ok) throw new Error('無法載入 page-flip.browser.js');
+  const pageFlipLib = await libRes.text();
+
+  const title    = document.getElementById('book-title').value.trim() || '我的電子書';
+  const lang     = document.getElementById('tts-lang').value;
+  const autoPlay = document.getElementById('auto-play').checked;
+
+  // 安全地跳脫 HTML 特殊字元（防止 XSS）
+  const esc = (s) => String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+  // 組裝每頁資料（JSON 格式，嵌入 HTML）
+  const pagesJSON = JSON.stringify(
+    state.pages.map((p) => ({ img: p.img, text: p.text || '' }))
+  );
+
+  return `<!DOCTYPE html>
+<html lang="${esc(lang)}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${esc(title)}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+      background: #0a0a0f;
+      color: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1.book-title {
+      padding: 1rem;
+      font-size: 1.2rem;
+      color: #00d4aa;
+      text-align: center;
+    }
+    #controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: #14141f;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .ctrl-btn {
+      padding: 0.45rem 1rem;
+      background: #1a1a2e;
+      border: 1px solid #2a2a3e;
+      border-radius: 8px;
+      color: #e8e8e8;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .ctrl-btn:hover { border-color: #00d4aa; color: #00d4aa; }
+    .ctrl-btn.active { background: #00d4aa; color: #000; border-color: #00d4aa; }
+    #page-info { color: #a0a0b0; font-size: 0.9rem; }
+    #book-container {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: center;
+      padding: 0 1rem 2rem;
+    }
+    #book { margin: 0 auto; }
+    #tts-text-display {
+      max-width: 700px;
+      margin: 1rem auto;
+      padding: 0.75rem 1.25rem;
+      background: #14141f;
+      border-left: 3px solid #00d4aa;
+      border-radius: 0 8px 8px 0;
+      color: #a0a0b0;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      min-height: 2.5rem;
+    }
+    .auto-play-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #a0a0b0;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="book-title">${esc(title)}</h1>
+
+  <div id="controls">
+    <button class="ctrl-btn" id="btn-prev">◀ 上一頁</button>
+    <span id="page-info">1 / ${state.pages.length}</span>
+    <button class="ctrl-btn" id="btn-next">下一頁 ▶</button>
+    <button class="ctrl-btn" id="btn-tts">▶ 朗讀此頁</button>
+    <button class="ctrl-btn" id="btn-stop" style="display:none">■ 停止</button>
+    <label class="auto-play-label">
+      <input type="checkbox" id="chk-auto" ${autoPlay ? 'checked' : ''}>
+      翻頁自動朗讀
+    </label>
+  </div>
+
+  <div id="tts-text-display">—</div>
+
+  <div id="book-container">
+    <div id="book"></div>
+  </div>
+
+  <script>
+/* ====== StPageFlip ====== */
+${pageFlipLib}
+  </script>
+  <script>
+/* ====== Book Data ====== */
+const PAGES = ${pagesJSON};
+const TTS_LANG = ${JSON.stringify(lang)};
+
+/* ====== TTS (Web Speech API — pluggable) ====== */
+const tts = {
+  provider: 'webSpeech',
+  speak(text) {
+    if (!text) return;
+    this.stop();
+    if (this.provider === 'webSpeech') {
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = TTS_LANG;
+      utt.onstart = () => {
+        btnStop.style.display = '';
+        btnTts.style.display  = 'none';
+      };
+      utt.onend = utt.onerror = () => {
+        btnStop.style.display = 'none';
+        btnTts.style.display  = '';
+      };
+      speechSynthesis.speak(utt);
+    }
+  },
+  stop() {
+    speechSynthesis.cancel();
+    btnStop.style.display = 'none';
+    btnTts.style.display  = '';
+  },
+};
+
+/* ====== Flip Book Init ====== */
+const bookEl   = document.getElementById('book');
+const pageInfo = document.getElementById('page-info');
+const ttsDisplay = document.getElementById('tts-text-display');
+const btnPrev  = document.getElementById('btn-prev');
+const btnNext  = document.getElementById('btn-next');
+const btnTts   = document.getElementById('btn-tts');
+const btnStop  = document.getElementById('btn-stop');
+const chkAuto  = document.getElementById('chk-auto');
+
+// 計算合適的書本尺寸（響應式）
+const containerW = Math.min(window.innerWidth - 32, 1100);
+const pageW = Math.floor(containerW / 2);
+const pageH = Math.round(pageW * (9 / 16));
+
+const pageFlip = new St.PageFlip(bookEl, {
+  width: pageW,
+  height: pageH,
+  size: 'fixed',
+  showCover: false,
+  flippingTime: 600,
+  usePortrait: window.innerWidth < 600,
+});
+
+// 將 base64 圖片包成 img 元素
+const imgEls = PAGES.map((p, i) => {
+  const div = document.createElement('div');
+  div.style.cssText = 'width:100%;height:100%;overflow:hidden;';
+  const img = document.createElement('img');
+  img.src = p.img;
+  img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+  img.alt = '第' + (i + 1) + '頁';
+  div.appendChild(img);
+  bookEl.appendChild(div);
+  return div;
+});
+
+pageFlip.loadFromHTML(bookEl.querySelectorAll('div'));
+
+function updateUI(pageIdx) {
+  const total = PAGES.length;
+  pageInfo.textContent = (pageIdx + 1) + ' / ' + total;
+  const text = PAGES[pageIdx]?.text || '';
+  ttsDisplay.textContent = text || '（此頁無語音文字）';
+  if (chkAuto.checked && text) tts.speak(text);
+}
+
+pageFlip.on('flip', (e) => {
+  tts.stop();
+  updateUI(e.data);
+});
+
+updateUI(0);
+
+btnPrev.addEventListener('click', () => { tts.stop(); pageFlip.flipPrev(); });
+btnNext.addEventListener('click', () => { tts.stop(); pageFlip.flipNext(); });
+btnTts.addEventListener('click', () => tts.speak(PAGES[pageFlip.getCurrentPageIndex()]?.text || ''));
+btnStop.addEventListener('click', () => tts.stop());
+
+// 鍵盤支援
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') btnNext.click();
+  if (e.key === 'ArrowLeft')  btnPrev.click();
+  if (e.key === ' ')          btnTts.click();
+});
+  </script>
+</body>
+</html>`;
+}
