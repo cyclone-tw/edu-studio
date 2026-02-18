@@ -7,8 +7,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 
 // ── 狀態 ──────────────────────────────────────────────────────────────
 const state = {
-  pages: [],      // [{ img: 'data:image/png;base64,...', text: '' }]
-  slideTexts: [], // 從 YAML 解析出的文字，按頁碼排列
+  pages: [],      // [{ img, text(全文), textBody(純內文) }]
+  slideTexts: [], // [{ full: '標題+內文', body: '純內文' }]
 };
 
 // ── DOM 元素 ──────────────────────────────────────────────────────────
@@ -54,10 +54,10 @@ pdfInput.addEventListener('change', async (e) => {
         viewport,
       }).promise;
 
-      const base64 = canvas.toDataURL('image/jpeg', 0.85); // JPEG 壓縮，平衡品質/大小
-      const text = state.slideTexts[i - 1] || ''; // 若有 YAML 就帶入
+      const base64 = canvas.toDataURL('image/jpeg', 0.85);
+      const st = state.slideTexts[i - 1] || { full: '', body: '' };
 
-      state.pages.push({ img: base64, text });
+      state.pages.push({ img: base64, text: st.full, textBody: st.body });
 
       // 更新進度
       const pct = Math.round((i / totalPages) * 100);
@@ -109,21 +109,25 @@ yamlInput.addEventListener('change', async (e) => {
         ? c.key_points.filter(Boolean).join('。')
         : (c.key_points || '');
 
-      const parts = [
+      const body = keyPoints || c.body || slide.body || '';
+      const titleParts = [
         c.title    || slide.title,
         c.subtitle || slide.subtitle,
-        keyPoints  || c.body || slide.body || slide.content,
       ].filter(p => p && typeof p === 'string');
-      return parts.join('。');
+
+      const full = [...titleParts, body].filter(Boolean).join('。');
+      return { full, body };
     });
 
     yamlStatus.textContent = `✓ 已載入 ${state.slideTexts.length} 頁文字`;
     yamlStatus.className = 'upload-status success';
 
-    // 若 PDF 已載入，更新每頁文字
+    // 若 PDF 已載入，更新每頁文字（不覆蓋手動編輯過的內容）
     if (state.pages.length > 0) {
       state.pages.forEach((page, i) => {
-        if (!page.text) page.text = state.slideTexts[i] || '';
+        const st = state.slideTexts[i] || { full: '', body: '' };
+        if (!page.text)     page.text     = st.full;
+        if (!page.textBody) page.textBody = st.body;
       });
       renderPreview();
     }
@@ -193,7 +197,11 @@ async function assembleHTML() {
 
   // 組裝每頁資料（JSON 格式，嵌入 HTML）
   const pagesJSON = JSON.stringify(
-    state.pages.map((p) => ({ img: p.img, text: p.text || '' }))
+    state.pages.map((p) => ({
+      img:      p.img,
+      text:     p.text     || '',   // 全文（標題+內文）
+      textBody: p.textBody || '',   // 純內文
+    }))
   );
 
   return `<!DOCTYPE html>
@@ -317,6 +325,10 @@ async function assembleHTML() {
         <input type="checkbox" id="chk-auto" ${autoPlay ? 'checked' : ''}>
         翻頁自動朗讀
       </label>
+      <label class="auto-label" title="關閉時只朗讀內文，不唸標題">
+        <input type="checkbox" id="chk-title" checked>
+        朗讀標題
+      </label>
     </div>
     <div id="tts-bar">—</div>
   </div>
@@ -344,6 +356,7 @@ const btnNext     = document.getElementById('btn-next');
 const btnTts      = document.getElementById('btn-tts');
 const btnStop     = document.getElementById('btn-stop');
 const chkAuto     = document.getElementById('chk-auto');
+const chkTitle    = document.getElementById('chk-title');
 const speedSlider = document.getElementById('speed-slider');
 const speedVal    = document.getElementById('speed-val');
 
@@ -425,9 +438,18 @@ function initFlip() {
   updateUI(0);
 }
 
+function getReadText(idx) {
+  const p = PAGES[idx];
+  if (!p) return '';
+  // 「朗讀標題」開：用全文；關：用純內文（若無純內文則 fallback 全文）
+  return chkTitle.checked
+    ? (p.text     || '')
+    : (p.textBody || p.text || '');
+}
+
 function updateUI(idx) {
   pageInfo.textContent = (idx + 1) + ' / ' + PAGES.length;
-  const text = PAGES[idx]?.text || '';
+  const text = getReadText(idx);
   ttsBar.textContent = text || '（此頁無語音文字）';
   if (chkAuto.checked && text) tts.speak(text);
 }
@@ -451,7 +473,7 @@ initFlip();
 /* ====== 按鈕事件 ====== */
 btnPrev.addEventListener('click', () => { tts.stop(); pf.flipPrev(); });
 btnNext.addEventListener('click', () => { tts.stop(); pf.flipNext(); });
-btnTts.addEventListener('click',  () => tts.speak(PAGES[pf.getCurrentPageIndex()]?.text || ''));
+btnTts.addEventListener('click',  () => tts.speak(getReadText(pf.getCurrentPageIndex())));
 btnStop.addEventListener('click', () => tts.stop());
 
 /* ====== 鍵盤支援 ====== */
