@@ -182,6 +182,21 @@
       margin-bottom: 0.6rem;
       font-weight: 500;
     }
+    .poly-hint {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+    .poly-hint code {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.05em 0.35em;
+      font-family: monospace;
+      color: var(--accent);
+      font-size: 0.95em;
+    }
     .page-preview-btn {
       display: block;
       width: 100%;
@@ -348,6 +363,11 @@
     <!-- Step 3: 預覽 + 編輯 TTS 文字 -->
     <div class="preview-section">
       <h3>頁面預覽 & 語音文字</h3>
+      <p class="poly-hint">
+        💡 <b>破音字</b>：在字後加括號標注正確讀音，例如
+        <code>行（ㄏㄤˊ）業</code> 或 <code>和（hàn）稀泥</code>——
+        畫面顯示原字，語音只念括號內的音。
+      </p>
       <div class="preview-empty" id="preview-empty">
         上傳 PDF 後，每頁縮圖會顯示在這裡<br>
         <span style="font-size:0.82rem;color:var(--text-secondary)">
