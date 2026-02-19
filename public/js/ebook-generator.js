@@ -206,7 +206,8 @@ function renderPreview() {
 // ── 多音字解析 ────────────────────────────────────────────────────────
 // 語法：不（布）→ display="不", tts="布"（1:1 字元映射）
 function parsePolyphonic(rawText) {
-  const POLY_RE = /(.)\uff08(.)\uff09/g;
+  // 支援全形 （布） 與半形 (布) 兩種括號
+  const POLY_RE = /(.)[（(](.)[）)]/g;
   const display = rawText.replace(POLY_RE, (_, shown) => shown);
   const tts     = rawText.replace(POLY_RE, (_, _shown, reading) => reading);
   return { display, tts };
