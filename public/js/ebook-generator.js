@@ -194,13 +194,44 @@ function renderPreview() {
       (v) => { state.pages[i].textBody = v; }
     );
 
+    // 試聽按鈕
+    const previewBtn = document.createElement('button');
+    previewBtn.className = 'page-preview-btn';
+    previewBtn.textContent = '▶ 試聽';
+    previewBtn.addEventListener('click', () => {
+      if (_previewBtn === previewBtn) { stopEditorPreview(); return; }
+      stopEditorPreview();
+      const p = state.pages[i];
+      const titleTts = parsePolyphonic(p.textTitle || '').tts;
+      const bodyTts  = parsePolyphonic(p.textBody  || '').tts;
+      const text = [titleTts, bodyTts].filter(Boolean).join('。');
+      if (!text) return;
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = document.getElementById('tts-lang').value;
+      _previewBtn = previewBtn;
+      previewBtn.textContent = '■ 停止';
+      utt.onend = utt.onerror = () => {
+        if (_previewBtn === previewBtn) { previewBtn.textContent = '▶ 試聽'; _previewBtn = null; }
+      };
+      speechSynthesis.speak(utt);
+    });
+
     cardBody.appendChild(num);
     cardBody.appendChild(titleField);
     cardBody.appendChild(bodyField);
+    cardBody.appendChild(previewBtn);
     card.appendChild(img);
     card.appendChild(cardBody);
     previewGrid.appendChild(card);
   });
+}
+
+// ── 編輯器 TTS 試聽 ───────────────────────────────────────────────────
+let _previewBtn = null; // 目前正在播放的按鈕
+
+function stopEditorPreview() {
+  speechSynthesis.cancel();
+  if (_previewBtn) { _previewBtn.textContent = '▶ 試聽'; _previewBtn = null; }
 }
 
 // ── 多音字解析 ────────────────────────────────────────────────────────
@@ -238,11 +269,13 @@ async function assembleHTML() {
       const titlePoly = parsePolyphonic(p.textTitle || '');
       const bodyPoly  = parsePolyphonic(p.textBody  || '');
       return {
-        img:       p.img,
-        textTitle: p.textTitle || '',
-        textBody:  p.textBody  || '',
-        ttsTitle:  titlePoly.tts,
-        ttsBody:   bodyPoly.tts,
+        img:          p.img,
+        textTitle:    p.textTitle || '',
+        textBody:     p.textBody  || '',
+        ttsTitle:     titlePoly.tts,
+        ttsBody:      bodyPoly.tts,
+        displayTitle: titlePoly.display,
+        displayBody:  bodyPoly.display,
       };
     })
   );
@@ -481,6 +514,7 @@ function initFlip() {
   updateUI(0);
 }
 
+// 朗讀用文字（破音字已替換）
 function getReadText(idx) {
   const p = PAGES[idx];
   if (!p) return '';
@@ -490,10 +524,20 @@ function getReadText(idx) {
   return p.ttsBody || p.ttsTitle || '';
 }
 
+// 顯示用文字（原字，不含破音替換）
+function getDisplayText(idx) {
+  const p = PAGES[idx];
+  if (!p) return '';
+  if (chkTitle.checked) {
+    return [p.displayTitle, p.displayBody].filter(Boolean).join('。');
+  }
+  return p.displayBody || p.displayTitle || '';
+}
+
 function updateUI(idx) {
   pageInfo.textContent = (idx + 1) + ' / ' + PAGES.length;
+  ttsBar.textContent = getDisplayText(idx) || '（此頁無語音文字）';
   const text = getReadText(idx);
-  ttsBar.textContent = text || '（此頁無語音文字）';
   if (chkAuto.checked && text) tts.speak(text);
 }
 
