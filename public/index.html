@@ -34,6 +34,9 @@
     <a href="/ebook.html" class="ebook-link" title="電子書生成工具">
       電子書工具
     </a>
+    <a href="/flashcard.html" class="ebook-link" title="閃卡生成工具">
+      閃卡工具
+    </a>
     <button class="btn btn-secondary btn-api-key" id="btnOpenApiKey" type="button">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
@@ -60,6 +63,8 @@
       <button class="mode-tab active" data-mode="ai" type="button">AI 智慧生成</button>
       <button class="mode-tab" data-mode="textbook" type="button">課文忠實模式</button>
       <button class="mode-tab" data-mode="custom" type="button">完全自訂</button>
+      <button class="mode-tab" data-mode="character" type="button">生字花瓣字</button>
+      <button class="mode-tab" data-mode="vocabulary" type="button">語詞閃卡</button>
     </nav>
 
     <!-- ============================== -->
@@ -221,6 +226,66 @@
         <!-- Supplementary text input -->
         <textarea class="form-textarea form-textarea-lg" id="textbookText"
           placeholder="貼上課文原文（選填），或直接拖曳課文檔案..." rows="6"></textarea>
+      </div>
+
+      <!-- Character (生字花瓣字) mode input -->
+      <div class="input-area hidden" id="characterInputArea">
+        <div class="drop-zone" id="characterDropZone">
+          <div class="drop-zone-content">
+            <svg class="drop-zone-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <p class="drop-zone-text">拖曳生字截圖至此，支援 PNG、JPG、PDF</p>
+            <p class="drop-zone-hint">或點擊此處上傳檔案</p>
+          </div>
+          <input type="file" class="drop-zone-input" id="characterFileInput" multiple accept=".pdf,.txt,.png,.jpg,.jpeg" hidden>
+        </div>
+        <div class="file-tags" id="characterFileTags"></div>
+        <textarea class="form-textarea form-textarea-lg" id="characterText"
+          placeholder="輸入生字（用空格、逗號或換行分隔）...&#10;&#10;範例：菊 花 香 秋 涼" rows="4"></textarea>
+      </div>
+
+      <!-- Vocabulary (語詞閃卡) mode input -->
+      <div class="input-area hidden" id="vocabularyInputArea">
+        <div class="drop-zone" id="vocabularyDropZone">
+          <div class="drop-zone-content">
+            <svg class="drop-zone-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <p class="drop-zone-text">拖曳語詞截圖至此，支援 PNG、JPG、PDF</p>
+            <p class="drop-zone-hint">或點擊此處上傳檔案</p>
+          </div>
+          <input type="file" class="drop-zone-input" id="vocabularyFileInput" multiple accept=".pdf,.txt,.png,.jpg,.jpeg" hidden>
+        </div>
+        <div class="file-tags" id="vocabularyFileTags"></div>
+        <textarea class="form-textarea form-textarea-lg" id="vocabularyText"
+          placeholder="輸入語詞（用空格、逗號或換行分隔）...&#10;&#10;範例：菊花 秋天 涼爽 花香 盛開" rows="4"></textarea>
+      </div>
+    </section>
+
+    <!-- ============================== -->
+    <!-- 閃卡風格選擇（僅閃卡模式可見）     -->
+    <!-- ============================== -->
+    <section class="form-section hidden" id="flashcardStyleSection">
+      <h2 class="section-title">閃卡風格</h2>
+      <div class="dimension-grid">
+        <div class="form-group">
+          <label class="form-label" for="flashcardStyleSelect">視覺風格</label>
+          <select class="form-select" id="flashcardStyleSelect">
+            <option value="">-- 使用預設風格 --</option>
+          </select>
+        </div>
+        <div class="form-group" id="fcFontSizeGroup">
+          <label class="form-label" for="fcFontSize">注音/部首/造詞 字級</label>
+          <div style="display:flex;align-items:center;gap:0.75rem">
+            <input type="range" class="form-range" id="fcFontSize" min="16" max="48" step="2" value="28" style="flex:1;accent-color:var(--accent)">
+            <span id="fcFontSizeVal" style="min-width:48px;text-align:center;font-weight:600;color:var(--accent)">28pt</span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -448,6 +513,9 @@
   <script src="js/yaml-engine.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/outline-editor.js"></script>
+  <script src="js/gemini-flashcard.js"></script>
+  <script src="js/flashcard-yaml-engine.js"></script>
+  <script src="js/flashcard-editor.js"></script>
   <script src="js/app.js"></script>
 
 </body>

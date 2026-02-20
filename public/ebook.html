@@ -301,7 +301,6 @@
       color: var(--text-secondary);
       text-decoration: none;
       font-size: 0.9rem;
-      margin-bottom: 1.5rem;
       transition: color var(--transition);
     }
     .nav-back:hover { color: var(--accent); }
@@ -310,7 +309,10 @@
 <body>
   <div class="ebook-container">
 
-    <a href="/" class="nav-back">&larr; 返回簡報生成助手</a>
+    <div style="display:flex;gap:1.5rem;margin-bottom:1.5rem">
+      <a href="/" class="nav-back">&larr; 返回簡報生成助手</a>
+      <a href="/flashcard.html" class="nav-back">閃卡工具 &rarr;</a>
+    </div>
 
     <div class="tool-header">
       <h1>電子書生成工具</h1>

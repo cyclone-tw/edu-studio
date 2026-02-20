@@ -138,6 +138,7 @@ body {
    ======================================== */
 .mode-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   background: var(--bg-card);
   border-radius: var(--radius);
@@ -1893,6 +1894,30 @@ body {
   color: var(--text-secondary);
 }
 
+/* ── Flashcard Editor Card ── */
+.flashcard-edit-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.flashcard-big-char {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-left: 12px;
+  line-height: 1;
+}
+
+.flashcard-char-input {
+  font-size: 1.5rem !important;
+  font-weight: 700;
+  text-align: center;
+  max-width: 120px;
+}
+
 /* ── Responsive for new components ── */
 @media (max-width: 768px) {
   .gd-color-row,
@@ -1906,5 +1931,10 @@ body {
 
   .gd-size-row .gd-field {
     min-width: 45%;
+  }
+
+  .mode-tab {
+    flex: 0 0 auto;
+    min-width: calc(33.33% - 4px);
   }
 }

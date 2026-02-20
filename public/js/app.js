@@ -10,7 +10,7 @@
   // 1. State Management
   // ──────────────────────────────────────────────
   const state = {
-    mode: 'ai',                // 'ai' | 'textbook' | 'custom'
+    mode: 'ai',                // 'ai' | 'textbook' | 'custom' | 'character' | 'vocabulary'
     aiInputMode: 'smart',      // 'smart' | 'outline' (for AI mode)
     presenterRole: null,
     audience: null,
@@ -22,7 +22,9 @@
     customPrompt: '',
     apiKey: localStorage.getItem('gemini_api_key') || '',
     uploadedFiles: [],       // Array of { name, mimeType, data, size }
-    textbookFiles: []        // Separate array for textbook mode
+    textbookFiles: [],       // Separate array for textbook mode
+    characterFiles: [],      // Separate array for character flashcard mode
+    vocabularyFiles: []      // Separate array for vocabulary flashcard mode
   };
 
   // Expose state for other modules (gemini.js etc.)
@@ -41,6 +43,11 @@
     audienceSelect:    $('#audienceSelect'),
     contextSelect:     $('#contextSelect'),
     styleSelect:       $('#styleSelect'),
+    flashcardStyleSection: $('#flashcardStyleSection'),
+    flashcardStyleSelect:  $('#flashcardStyleSelect'),
+    fcFontSize:            $('#fcFontSize'),
+    fcFontSizeVal:         $('#fcFontSizeVal'),
+    fcFontSizeGroup:       $('#fcFontSizeGroup'),
     // Sections
     dimensionsSection: $('#dimensionsSection'),
     paramsSection:     $('#paramsSection'),
@@ -58,9 +65,13 @@
     smartInputPanel:   $('#smartInputPanel'),
     outlineInputPanel: $('#outlineInputPanel'),
     textbookInputArea: $('#textbookInputArea'),
+    characterInputArea: $('#characterInputArea'),
+    vocabularyInputArea: $('#vocabularyInputArea'),
     materialText:      $('#materialText'),
     outlineText:       $('#outlineText'),
     textbookText:      $('#textbookText'),
+    characterText:     $('#characterText'),
+    vocabularyText:    $('#vocabularyText'),
     // File upload
     smartDropZone:     $('#smartDropZone'),
     smartFileInput:    $('#smartFileInput'),
@@ -68,6 +79,12 @@
     textbookDropZone:  $('#textbookDropZone'),
     textbookFileInput: $('#textbookFileInput'),
     textbookFileTags:  $('#textbookFileTags'),
+    characterDropZone: $('#characterDropZone'),
+    characterFileInput: $('#characterFileInput'),
+    characterFileTags: $('#characterFileTags'),
+    vocabularyDropZone: $('#vocabularyDropZone'),
+    vocabularyFileInput: $('#vocabularyFileInput'),
+    vocabularyFileTags: $('#vocabularyFileTags'),
     // Buttons
     btnGenerate:       $('#btnGenerate'),
     btnDownloadYaml:   $('#btnDownloadYaml'),
@@ -190,6 +207,16 @@
       opt.textContent = item.label;
       dom.styleSelect.appendChild(opt);
     });
+
+    // Flashcard style dropdown (same options)
+    if (dom.flashcardStyleSelect) {
+      PRESETS.visualStyles.forEach(function (item) {
+        var opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = item.label;
+        dom.flashcardStyleSelect.appendChild(opt);
+      });
+    }
   }
 
   // ──────────────────────────────────────────────
@@ -208,6 +235,16 @@
     dom.styleSelect.addEventListener('change', function () {
       state.visualStyle = this.value || null;
     });
+    if (dom.flashcardStyleSelect) {
+      dom.flashcardStyleSelect.addEventListener('change', function () {
+        state.visualStyle = this.value || null;
+      });
+    }
+    if (dom.fcFontSize && dom.fcFontSizeVal) {
+      dom.fcFontSize.addEventListener('input', function () {
+        dom.fcFontSizeVal.textContent = this.value + 'pt';
+      });
+    }
   }
 
   // ──────────────────────────────────────────────
@@ -218,19 +255,41 @@
     if (mode !== 'custom' && state.mode === 'custom') {
       if (typeof OutlineEditor !== 'undefined') OutlineEditor.clear();
     }
+    // When switching away from flashcard modes, clear flashcard editor
+    if (mode !== 'character' && mode !== 'vocabulary' &&
+        (state.mode === 'character' || state.mode === 'vocabulary')) {
+      if (typeof FlashcardEditor !== 'undefined') FlashcardEditor.clear();
+    }
 
     state.mode = mode;
 
     // Clear file state on mode switch
     state.uploadedFiles.length = 0;
     state.textbookFiles.length = 0;
+    state.characterFiles.length = 0;
+    state.vocabularyFiles.length = 0;
     if (dom.smartFileTags) dom.smartFileTags.innerHTML = '';
     if (dom.textbookFileTags) dom.textbookFileTags.innerHTML = '';
+    if (dom.characterFileTags) dom.characterFileTags.innerHTML = '';
+    if (dom.vocabularyFileTags) dom.vocabularyFileTags.innerHTML = '';
 
     // Toggle active class on tab buttons
     $$('#modeTabs .mode-tab').forEach(function (tab) {
       tab.classList.toggle('active', tab.getAttribute('data-mode') === mode);
     });
+
+    // Hide all input areas first
+    dom.aiInputArea.classList.add('hidden');
+    dom.textbookInputArea.classList.add('hidden');
+    if (dom.characterInputArea) dom.characterInputArea.classList.add('hidden');
+    if (dom.vocabularyInputArea) dom.vocabularyInputArea.classList.add('hidden');
+
+    // Toggle MD download button visibility
+    if (dom.btnDownloadMd) {
+      dom.btnDownloadMd.classList.toggle('hidden', mode === 'character' || mode === 'vocabulary');
+    }
+    // Hide flashcard style section by default (shown only in flashcard modes)
+    if (dom.flashcardStyleSection) dom.flashcardStyleSection.classList.add('hidden');
 
     if (mode === 'ai') {
       dom.dimensionsSection.classList.remove('hidden');
@@ -238,28 +297,40 @@
       dom.materialSection.classList.remove('hidden');
       dom.generateRow.classList.remove('hidden');
       dom.aiInputArea.classList.remove('hidden');
-      dom.textbookInputArea.classList.add('hidden');
       dom.previewSection.classList.add('hidden');
     } else if (mode === 'textbook') {
       dom.dimensionsSection.classList.remove('hidden');
       dom.paramsSection.classList.remove('hidden');
       dom.materialSection.classList.remove('hidden');
       dom.generateRow.classList.remove('hidden');
-      dom.aiInputArea.classList.add('hidden');
       dom.textbookInputArea.classList.remove('hidden');
       dom.previewSection.classList.add('hidden');
     } else if (mode === 'custom') {
-      // Custom mode: hide all form sections, show editor directly
       dom.dimensionsSection.classList.add('hidden');
       dom.paramsSection.classList.add('hidden');
       dom.materialSection.classList.add('hidden');
       dom.generateRow.classList.add('hidden');
       dom.previewSection.classList.remove('hidden');
 
-      // Initialize empty document and load into editor
       if (typeof OutlineEditor !== 'undefined') {
         var emptyDoc = OutlineEditor.createEmptyDocument();
         OutlineEditor.loadOutline(emptyDoc);
+      }
+    } else if (mode === 'character' || mode === 'vocabulary') {
+      // Flashcard modes: hide dimensions/params, show material + generate + style
+      dom.dimensionsSection.classList.add('hidden');
+      dom.paramsSection.classList.add('hidden');
+      dom.materialSection.classList.remove('hidden');
+      dom.generateRow.classList.remove('hidden');
+      dom.previewSection.classList.add('hidden');
+      if (dom.flashcardStyleSection) dom.flashcardStyleSection.classList.remove('hidden');
+      // Font size group only for character mode
+      if (dom.fcFontSizeGroup) dom.fcFontSizeGroup.style.display = (mode === 'character') ? '' : 'none';
+
+      if (mode === 'character') {
+        dom.characterInputArea.classList.remove('hidden');
+      } else {
+        dom.vocabularyInputArea.classList.remove('hidden');
       }
     }
   }
@@ -339,7 +410,9 @@
     'audio/ogg': 'OGG',
     'audio/webm': 'WEBM',
     'audio/x-m4a': 'M4A',
-    'audio/mp3': 'MP3'
+    'audio/mp3': 'MP3',
+    'image/png': 'PNG',
+    'image/jpeg': 'JPG'
   };
 
   var MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
@@ -386,7 +459,7 @@
       var mimeType = file.type;
       if (!mimeType) {
         var ext = file.name.split('.').pop().toLowerCase();
-        var extMap = { pdf: 'application/pdf', txt: 'text/plain', mp3: 'audio/mpeg', mp4: 'video/mp4', wav: 'audio/wav', m4a: 'audio/x-m4a', ogg: 'audio/ogg', webm: 'audio/webm' };
+        var extMap = { pdf: 'application/pdf', txt: 'text/plain', mp3: 'audio/mpeg', mp4: 'video/mp4', wav: 'audio/wav', m4a: 'audio/x-m4a', ogg: 'audio/ogg', webm: 'audio/webm', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
         mimeType = extMap[ext] || '';
       }
 
@@ -410,6 +483,10 @@
             var textarea;
             if (filesKey === 'uploadedFiles') {
               textarea = dom.materialText;
+            } else if (filesKey === 'characterFiles') {
+              textarea = dom.characterText;
+            } else if (filesKey === 'vocabularyFiles') {
+              textarea = dom.vocabularyText;
             } else {
               textarea = dom.textbookText;
             }
@@ -477,6 +554,7 @@
       var icon = '\u{1F4C4}';
       if (f.mimeType.startsWith('audio/') || f.mimeType === 'video/mp4') icon = '\u{1F3B5}';
       if (f.mimeType === 'application/pdf') icon = '\u{1F4D5}';
+      if (f.mimeType.startsWith('image/')) icon = '\u{1F5BC}';
 
       var sizeStr = f.size < 1024 * 1024
         ? Math.round(f.size / 1024) + 'KB'
@@ -587,6 +665,12 @@
     } else if (state.mode === 'textbook') {
       text = (dom.textbookText.value || '').trim();
       files = state.textbookFiles || [];
+    } else if (state.mode === 'character') {
+      text = (dom.characterText ? dom.characterText.value || '' : '').trim();
+      files = state.characterFiles || [];
+    } else if (state.mode === 'vocabulary') {
+      text = (dom.vocabularyText ? dom.vocabularyText.value || '' : '').trim();
+      files = state.vocabularyFiles || [];
     }
 
     return { text: text, files: files };
@@ -612,8 +696,8 @@
         return;
       }
 
-      // Validate dimensions (for ai/textbook modes)
-      if (state.mode !== 'custom') {
+      // Validate dimensions (for ai/textbook modes only)
+      if (state.mode === 'ai' || state.mode === 'textbook') {
         if (!state.presenterRole) {
           showToast('請選擇簡報者角色', 'error');
           return;
@@ -645,6 +729,7 @@
 
       try {
         var result;
+        var isFlashcardMode = (state.mode === 'character' || state.mode === 'vocabulary');
 
         if (state.mode === 'ai') {
           if (state.aiInputMode === 'smart' && typeof window.generatePresentation === 'function') {
@@ -658,6 +743,10 @@
           }
         } else if (state.mode === 'textbook' && typeof window.splitTextbook === 'function') {
           result = await window.splitTextbook(input.text, state, input.files);
+        } else if (state.mode === 'character' && typeof window.generateCharacterCards === 'function') {
+          result = await window.generateCharacterCards(input.text, state.apiKey, input.files);
+        } else if (state.mode === 'vocabulary' && typeof window.generateVocabularyCards === 'function') {
+          result = await window.generateVocabularyCards(input.text, state.apiKey, input.files);
         } else {
           hideLoading();
           showToast('Gemini 模組尚未載入', 'error');
@@ -669,7 +758,24 @@
           var doc;
           var yamlString;
           try {
-            if (typeof window.buildYaml === 'function') {
+            if (isFlashcardMode) {
+              // Use flashcard-specific YAML builders
+              // Use mode-appropriate default: hand_drawn for character, q_cute for vocabulary
+              var defaultStyle = state.mode === 'vocabulary' ? 'q_cute' : 'hand_drawn';
+              var styleId = state.visualStyle || defaultStyle;
+              if (state.mode === 'character' && typeof window.buildCharacterYaml === 'function') {
+                var charOpts = {};
+                if (dom.fcFontSize) charOpts.keyPointsFontSize = dom.fcFontSize.value + 'pt';
+                doc = window.buildCharacterYaml(result, styleId, charOpts);
+              } else if (state.mode === 'vocabulary' && typeof window.buildVocabularyYaml === 'function') {
+                doc = window.buildVocabularyYaml(result, styleId);
+              }
+              if (doc && typeof window.toNblmYaml === 'function') {
+                yamlString = window.toNblmYaml(doc);
+              } else {
+                yamlString = jsyaml.dump(doc || result);
+              }
+            } else if (typeof window.buildYaml === 'function') {
               doc = window.buildYaml(result, state);
               if (typeof window.toNblmYaml === 'function') {
                 yamlString = window.toNblmYaml(doc);
@@ -686,7 +792,13 @@
 
           if (dom.yamlPreview) dom.yamlPreview.value = yamlString;
 
-          if (typeof OutlineEditor !== 'undefined' && doc) {
+          if (isFlashcardMode && typeof FlashcardEditor !== 'undefined' && doc) {
+            try {
+              FlashcardEditor.loadCards(doc, state.mode);
+            } catch (editorErr) {
+              console.warn('[FlashcardEditor] Load failed:', editorErr);
+            }
+          } else if (typeof OutlineEditor !== 'undefined' && doc) {
             try {
               OutlineEditor.loadOutline(doc);
             } catch (outlineErr) {
@@ -699,7 +811,8 @@
         isGenerating = false;
         dom.btnGenerate.disabled = false;
         showPreview();
-        showToast('簡報生成完成！', 'success');
+        var successMsg = isFlashcardMode ? '閃卡生成完成！' : '簡報生成完成！';
+        showToast(successMsg, 'success');
       } catch (err) {
         hideLoading();
         isGenerating = false;
@@ -894,6 +1007,8 @@
     // Init drop zones
     initDropZone(dom.smartDropZone, dom.smartFileInput, dom.smartFileTags, state.uploadedFiles, 'uploadedFiles');
     initDropZone(dom.textbookDropZone, dom.textbookFileInput, dom.textbookFileTags, state.textbookFiles, 'textbookFiles');
+    initDropZone(dom.characterDropZone, dom.characterFileInput, dom.characterFileTags, state.characterFiles, 'characterFiles');
+    initDropZone(dom.vocabularyDropZone, dom.vocabularyFileInput, dom.vocabularyFileTags, state.vocabularyFiles, 'vocabularyFiles');
 
     // Init navigation
     initModeTabs();
@@ -922,6 +1037,18 @@
         }
       );
       OutlineEditor.bindEvents();
+    }
+
+    // Init flashcard editor (shares same container and preview)
+    if (typeof FlashcardEditor !== 'undefined') {
+      FlashcardEditor.init(
+        dom.outlineEditor || document.getElementById('outlineEditor'),
+        dom.yamlPreview,
+        function (updatedCards) {
+          console.log('[FlashcardEditor] Updated:', updatedCards);
+        }
+      );
+      FlashcardEditor.bindEvents();
     }
 
     // Set initial mode

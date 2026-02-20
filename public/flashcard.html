@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>閃卡生成工具 | Cyclone Studio</title>
+  <link rel="icon" type="image/png" href="dragon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- PDF.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.9.155/build/pdf.min.mjs" type="module" id="pdfjs-script"></script>
+
+  <!-- js-yaml CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
+
+  <!-- 共用樣式 -->
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* flashcard 工具專用樣式 */
+    .flashcard-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem;
+    }
+    .tool-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .tool-header h1 {
+      font-size: 1.8rem;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .tool-header p {
+      color: var(--text-secondary);
+    }
+
+    /* ── 導航連結 ── */
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color var(--transition);
+    }
+    .nav-back:hover { color: var(--accent); }
+
+    /* ── 類型切換 ── */
+    .type-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 2rem;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .type-tab {
+      flex: 1;
+      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-family: var(--font);
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition);
+    }
+    .type-tab:hover {
+      color: var(--text-primary);
+      background: var(--bg-surface);
+    }
+    .type-tab.active {
+      color: var(--bg-primary);
+      background: var(--accent);
+      font-weight: 700;
+    }
+
+    /* ── 上傳區 ── */
+    .upload-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .upload-card {
+      background: var(--bg-card);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      text-align: center;
+      transition: border-color var(--transition);
+    }
+    .upload-card.required { border-color: var(--accent); }
+    .upload-card h3 { margin-bottom: 0.5rem; font-size: 1rem; }
+    .upload-card p {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .upload-card input[type="file"] { display: none; }
+    .upload-btn {
+      display: inline-block;
+      padding: 0.6rem 1.4rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all var(--transition);
+    }
+    .upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .upload-status {
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .upload-status.success { color: var(--success); }
+    .upload-status.error   { color: var(--danger); }
+
+    /* ── 設定區 ── */
+    .settings-section {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .settings-section h3 { margin-bottom: 1rem; color: var(--accent); }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .setting-row label {
+      min-width: 100px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    .setting-row input[type="text"],
+    .setting-row select {
+      flex: 1;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.75rem;
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 0.95rem;
+    }
+
+    /* ── 預覽區 ── */
+    .preview-section { margin-bottom: 2rem; }
+    .preview-section h3 { color: var(--accent); margin-bottom: 1rem; }
+    .preview-empty {
+      text-align: center;
+      color: var(--text-secondary);
+      padding: 3rem;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      line-height: 2;
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .card-preview {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      transition: border-color var(--transition);
+    }
+    .card-preview:hover { border-color: var(--accent); }
+    .card-thumbnail {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      display: block;
+      background: #111;
+    }
+    .card-preview-body { padding: 1rem; }
+    .card-num {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.6rem;
+      font-weight: 500;
+    }
+    .card-big-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .card-field { margin-bottom: 0.75rem; }
+    .card-field-label {
+      font-size: 0.78rem;
+      color: var(--accent);
+      margin-bottom: 0.3rem;
+      font-weight: 600;
+    }
+    .card-text-input {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.7rem;
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 0.88rem;
+      resize: vertical;
+      min-height: 48px;
+      line-height: 1.5;
+      transition: border-color var(--transition);
+    }
+    .card-text-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .card-preview-btn {
+      display: block;
+      width: 100%;
+      margin-top: 0.5rem;
+      padding: 0.4rem 0;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--accent);
+      font-family: var(--font);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .card-preview-btn:hover { border-color: var(--accent); background: rgba(0,212,170,0.08); }
+
+    /* ── 生成按鈕 ── */
+    .generate-section {
+      text-align: center;
+      padding: 1rem;
+    }
+    .generate-btn {
+      padding: 0.9rem 2.5rem;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all var(--transition);
+      margin: 0 0.5rem;
+    }
+    .generate-btn:hover { background: var(--accent-hover); transform: translateY(-2px); }
+    .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .progress-bar {
+      width: 100%;
+      max-width: 400px;
+      margin: 1rem auto 0;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* ── 分隔線 ── */
+    .section-divider {
+      border: none;
+      border-top: 2px solid var(--border);
+      margin: 3rem 0;
+    }
+
+    /* ── 三合一區 ── */
+    .combo-section {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    .combo-section h2 {
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      font-size: 1.4rem;
+    }
+    .combo-section > p {
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+    }
+    .combo-upload-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .combo-group h4 {
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+    }
+    .combo-group .upload-card {
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── 響應式 ── */
+    @media (max-width: 1024px) {
+      .flashcard-container { padding: 1.25rem; }
+      .preview-grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+      .combo-upload-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .flashcard-container { padding: 1rem 0.75rem; }
+      .upload-section { grid-template-columns: 1fr; gap: 1rem; }
+      .tool-header h1 { font-size: 1.4rem; }
+      .preview-grid { grid-template-columns: 1fr; gap: 1rem; }
+      .setting-row { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+      .setting-row label { min-width: unset; }
+      .setting-row input[type="text"],
+      .setting-row select { width: 100%; }
+      .nav-links { flex-direction: column; gap: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="flashcard-container">
+
+    <div class="nav-links">
+      <a href="/" class="nav-back">&larr; 返回簡報生成助手</a>
+      <a href="/ebook.html" class="nav-back">電子書工具 &rarr;</a>
+    </div>
+
+    <div class="tool-header">
+      <h1>閃卡生成工具</h1>
+      <p>上傳 NotebookLM 產出的 PDF，生成含翻牌動畫與語音朗讀的閃卡</p>
+    </div>
+
+    <!-- 閃卡類型切換 -->
+    <div class="type-tabs" id="typeTabs">
+      <button class="type-tab active" data-type="character" type="button">生字閃卡</button>
+      <button class="type-tab" data-type="vocabulary" type="button">語詞閃卡</button>
+    </div>
+
+    <!-- 上傳區 -->
+    <div class="upload-section">
+      <div class="upload-card required">
+        <h3>PDF 閃卡圖片 <span class="pdf-required-hint" style="color:var(--danger)">*</span></h3>
+        <p>NotebookLM 產出的 PDF（每頁一張閃卡圖）</p>
+        <label class="upload-btn" for="fc-pdf-input">選擇 PDF</label>
+        <input type="file" id="fc-pdf-input" accept=".pdf">
+        <div class="upload-status" id="fc-pdf-status">尚未選擇檔案</div>
+      </div>
+      <div class="upload-card">
+        <h3>YAML 檔案 <span style="color:var(--text-secondary)">(選填)</span></h3>
+        <p>匯入 YAML 自動填入文字</p>
+        <label class="upload-btn" for="fc-yaml-input">選擇檔案</label>
+        <input type="file" id="fc-yaml-input" accept=".yaml,.yml,.txt">
+        <div class="upload-status" id="fc-yaml-status">尚未選擇（文字需手動填寫）</div>
+      </div>
+    </div>
+
+    <!-- 設定 -->
+    <div class="settings-section">
+      <h3>閃卡設定</h3>
+      <div class="setting-row">
+        <label>標題</label>
+        <input type="text" id="fc-title" placeholder="我的閃卡" value="我的閃卡">
+      </div>
+      <div class="setting-row">
+        <label>語音語言</label>
+        <select id="fc-tts-lang">
+          <option value="zh-TW">繁體中文（zh-TW）</option>
+          <option value="zh-CN">簡體中文（zh-CN）</option>
+          <option value="en-US">English（en-US）</option>
+          <option value="ja-JP">日本語（ja-JP）</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 預覽區 -->
+    <div class="preview-section">
+      <h3>卡片預覽 & 文字編輯</h3>
+      <div class="preview-empty" id="fc-preview-empty">
+        上傳 PDF 後，每張卡片會顯示在這裡
+      </div>
+      <div class="preview-grid" id="fc-preview-grid" style="display:none"></div>
+    </div>
+
+    <!-- 生成按鈕 -->
+    <div class="generate-section">
+      <button class="generate-btn" id="fc-generate-btn" disabled>
+        生成並下載閃卡 HTML
+      </button>
+      <div class="progress-bar" id="fc-progress-bar">
+        <div class="progress-fill" id="fc-progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════ -->
+    <!-- 三合一整合區                          -->
+    <!-- ═══════════════════════════════════ -->
+    <hr class="section-divider">
+
+    <div class="combo-section">
+      <h2>三合一整合</h2>
+      <p>將電子書 + 生字閃卡 + 語詞閃卡合併為一個 HTML，透過頁籤切換</p>
+
+      <div class="combo-upload-grid">
+        <div class="combo-group">
+          <h4>電子書</h4>
+          <div class="upload-card">
+            <p>PDF 簡報</p>
+            <label class="upload-btn" for="combo-ebook-pdf">選擇 PDF</label>
+            <input type="file" id="combo-ebook-pdf" accept=".pdf">
+            <div class="upload-status" id="combo-ebook-pdf-status">尚未選擇</div>
+          </div>
+          <div class="upload-card">
+            <p>YAML (選填)</p>
+            <label class="upload-btn" for="combo-ebook-yaml">選擇檔案</label>
+            <input type="file" id="combo-ebook-yaml" accept=".yaml,.yml,.txt">
+            <div class="upload-status" id="combo-ebook-yaml-status">尚未選擇</div>
+          </div>
+        </div>
+
+        <div class="combo-group">
+          <h4>生字閃卡</h4>
+          <div class="upload-card">
+            <p>PDF 圖片</p>
+            <label class="upload-btn" for="combo-char-pdf">選擇 PDF</label>
+            <input type="file" id="combo-char-pdf" accept=".pdf">
+            <div class="upload-status" id="combo-char-pdf-status">尚未選擇</div>
+          </div>
+          <div class="upload-card">
+            <p>YAML (選填)</p>
+            <label class="upload-btn" for="combo-char-yaml">選擇檔案</label>
+            <input type="file" id="combo-char-yaml" accept=".yaml,.yml,.txt">
+            <div class="upload-status" id="combo-char-yaml-status">尚未選擇</div>
+          </div>
+        </div>
+
+        <div class="combo-group">
+          <h4>語詞閃卡</h4>
+          <div class="upload-card">
+            <p>PDF 圖片</p>
+            <label class="upload-btn" for="combo-vocab-pdf">選擇 PDF</label>
+            <input type="file" id="combo-vocab-pdf" accept=".pdf">
+            <div class="upload-status" id="combo-vocab-pdf-status">尚未選擇</div>
+          </div>
+          <div class="upload-card">
+            <p>YAML (選填)</p>
+            <label class="upload-btn" for="combo-vocab-yaml">選擇檔案</label>
+            <input type="file" id="combo-vocab-yaml" accept=".yaml,.yml,.txt">
+            <div class="upload-status" id="combo-vocab-yaml-status">尚未選擇</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section" style="margin-bottom:0">
+        <div class="setting-row">
+          <label>整合標題</label>
+          <input type="text" id="combo-title" placeholder="我的教材" value="我的教材">
+        </div>
+        <div class="setting-row">
+          <label>語音語言</label>
+          <select id="combo-tts-lang">
+            <option value="zh-TW">繁體中文（zh-TW）</option>
+            <option value="zh-CN">簡體中文（zh-CN）</option>
+            <option value="en-US">English（en-US）</option>
+            <option value="ja-JP">日本語（ja-JP）</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="generate-section">
+        <button class="generate-btn" id="combo-generate-btn" disabled>
+          生成三合一 HTML
+        </button>
+        <div class="progress-bar" id="combo-progress-bar">
+          <div class="progress-fill" id="combo-progress-fill"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="js/flashcard-generator.js"></script>
+</body>
+</html>

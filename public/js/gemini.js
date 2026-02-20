@@ -331,8 +331,66 @@
   }
 
   // ──────────────────────────────────────────────
+  // Helper: callGeminiImage — 圖片生成
+  // ──────────────────────────────────────────────
+  async function callGeminiImage(apiKey, prompt) {
+    if (!apiKey) {
+      throw new Error('請先設定 Gemini API Key');
+    }
+
+    var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + apiKey;
+
+    var response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseModalities: ['TEXT', 'IMAGE']
+          }
+        })
+      });
+    } catch (networkErr) {
+      throw new Error('網路連線失敗：' + (networkErr.message || '未知錯誤'));
+    }
+
+    if (!response.ok) {
+      var err = await response.json().catch(function () { return {}; });
+      var errMsg = (err.error && err.error.message) || '';
+      if (response.status === 429) {
+        throw new Error('⏱️ 圖片生成 API 請求超過限制（15 RPM / 500 RPD），請稍候重試。');
+      }
+      throw new Error(errMsg || ('API 錯誤: ' + response.status));
+    }
+
+    var data = await response.json();
+    var parts = data.candidates
+      && data.candidates[0]
+      && data.candidates[0].content
+      && data.candidates[0].content.parts;
+
+    if (!parts || parts.length === 0) {
+      throw new Error('圖片生成 API 回應為空');
+    }
+
+    // Find the image part
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i].inlineData && parts[i].inlineData.data) {
+        var mime = parts[i].inlineData.mimeType || 'image/png';
+        return 'data:' + mime + ';base64,' + parts[i].inlineData.data;
+      }
+    }
+
+    throw new Error('API 回應中未包含圖片');
+  }
+
+  // ──────────────────────────────────────────────
   // Expose globally
   // ──────────────────────────────────────────────
+  window.callGemini = callGemini;
+  window.callGeminiImage = callGeminiImage;
   window.generatePresentation = generatePresentation;
   window.splitTextbook = splitTextbook;
   window.generateFromOutline = generateFromOutline;
