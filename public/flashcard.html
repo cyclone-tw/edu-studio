@@ -286,49 +286,10 @@
       transition: width 0.3s ease;
     }
 
-    /* ── 分隔線 ── */
-    .section-divider {
-      border: none;
-      border-top: 2px solid var(--border);
-      margin: 3rem 0;
-    }
-
-    /* ── 三合一區 ── */
-    .combo-section {
-      background: var(--bg-card);
-      border-radius: var(--radius);
-      padding: 2rem;
-      margin-bottom: 2rem;
-    }
-    .combo-section h2 {
-      color: var(--accent);
-      margin-bottom: 0.5rem;
-      font-size: 1.4rem;
-    }
-    .combo-section > p {
-      color: var(--text-secondary);
-      margin-bottom: 1.5rem;
-    }
-    .combo-upload-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
-      margin-bottom: 1.5rem;
-    }
-    .combo-group h4 {
-      color: var(--text-primary);
-      margin-bottom: 0.75rem;
-      font-size: 0.95rem;
-    }
-    .combo-group .upload-card {
-      margin-bottom: 0.75rem;
-    }
-
     /* ── 響應式 ── */
     @media (max-width: 1024px) {
       .flashcard-container { padding: 1.25rem; }
       .preview-grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
-      .combo-upload-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 600px) {
       .flashcard-container { padding: 1rem 0.75rem; }
@@ -349,6 +310,7 @@
     <div class="nav-links">
       <a href="/" class="nav-back">&larr; 返回簡報生成助手</a>
       <a href="/ebook.html" class="nav-back">電子書工具 &rarr;</a>
+      <a href="/combo.html" class="nav-back">三合一工具 &rarr;</a>
     </div>
 
     <div class="tool-header">
@@ -414,91 +376,6 @@
       </button>
       <div class="progress-bar" id="fc-progress-bar">
         <div class="progress-fill" id="fc-progress-fill"></div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════ -->
-    <!-- 三合一整合區                          -->
-    <!-- ═══════════════════════════════════ -->
-    <hr class="section-divider">
-
-    <div class="combo-section">
-      <h2>三合一整合</h2>
-      <p>將電子書 + 生字閃卡 + 語詞閃卡合併為一個 HTML，透過頁籤切換</p>
-
-      <div class="combo-upload-grid">
-        <div class="combo-group">
-          <h4>電子書</h4>
-          <div class="upload-card">
-            <p>PDF 簡報</p>
-            <label class="upload-btn" for="combo-ebook-pdf">選擇 PDF</label>
-            <input type="file" id="combo-ebook-pdf" accept=".pdf">
-            <div class="upload-status" id="combo-ebook-pdf-status">尚未選擇</div>
-          </div>
-          <div class="upload-card">
-            <p>YAML (選填)</p>
-            <label class="upload-btn" for="combo-ebook-yaml">選擇檔案</label>
-            <input type="file" id="combo-ebook-yaml" accept=".yaml,.yml,.txt">
-            <div class="upload-status" id="combo-ebook-yaml-status">尚未選擇</div>
-          </div>
-        </div>
-
-        <div class="combo-group">
-          <h4>生字閃卡</h4>
-          <div class="upload-card">
-            <p>PDF 圖片</p>
-            <label class="upload-btn" for="combo-char-pdf">選擇 PDF</label>
-            <input type="file" id="combo-char-pdf" accept=".pdf">
-            <div class="upload-status" id="combo-char-pdf-status">尚未選擇</div>
-          </div>
-          <div class="upload-card">
-            <p>YAML (選填)</p>
-            <label class="upload-btn" for="combo-char-yaml">選擇檔案</label>
-            <input type="file" id="combo-char-yaml" accept=".yaml,.yml,.txt">
-            <div class="upload-status" id="combo-char-yaml-status">尚未選擇</div>
-          </div>
-        </div>
-
-        <div class="combo-group">
-          <h4>語詞閃卡</h4>
-          <div class="upload-card">
-            <p>PDF 圖片</p>
-            <label class="upload-btn" for="combo-vocab-pdf">選擇 PDF</label>
-            <input type="file" id="combo-vocab-pdf" accept=".pdf">
-            <div class="upload-status" id="combo-vocab-pdf-status">尚未選擇</div>
-          </div>
-          <div class="upload-card">
-            <p>YAML (選填)</p>
-            <label class="upload-btn" for="combo-vocab-yaml">選擇檔案</label>
-            <input type="file" id="combo-vocab-yaml" accept=".yaml,.yml,.txt">
-            <div class="upload-status" id="combo-vocab-yaml-status">尚未選擇</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="settings-section" style="margin-bottom:0">
-        <div class="setting-row">
-          <label>整合標題</label>
-          <input type="text" id="combo-title" placeholder="我的教材" value="我的教材">
-        </div>
-        <div class="setting-row">
-          <label>語音語言</label>
-          <select id="combo-tts-lang">
-            <option value="zh-TW">繁體中文（zh-TW）</option>
-            <option value="zh-CN">簡體中文（zh-CN）</option>
-            <option value="en-US">English（en-US）</option>
-            <option value="ja-JP">日本語（ja-JP）</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="generate-section">
-        <button class="generate-btn" id="combo-generate-btn" disabled>
-          生成三合一 HTML
-        </button>
-        <div class="progress-bar" id="combo-progress-bar">
-          <div class="progress-fill" id="combo-progress-fill"></div>
-        </div>
       </div>
     </div>
 
