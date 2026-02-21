@@ -206,14 +206,17 @@ function renderPreview() {
       const bodyTts  = parsePolyphonic(p.textBody  || '').tts;
       const text = [titleTts, bodyTts].filter(Boolean).join('。');
       if (!text) return;
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.lang = document.getElementById('tts-lang').value;
       _previewBtn = previewBtn;
       previewBtn.textContent = '■ 停止';
-      utt.onend = utt.onerror = () => {
-        if (_previewBtn === previewBtn) { previewBtn.textContent = '▶ 試聽'; _previewBtn = null; }
-      };
-      speechSynthesis.speak(utt);
+      // Delay speak after cancel() to avoid Chrome speechSynthesis bug
+      setTimeout(() => {
+        const utt = new SpeechSynthesisUtterance(text);
+        utt.lang = document.getElementById('tts-lang').value;
+        utt.onend = utt.onerror = () => {
+          if (_previewBtn === previewBtn) { previewBtn.textContent = '▶ 試聽'; _previewBtn = null; }
+        };
+        speechSynthesis.speak(utt);
+      }, 50);
     });
 
     cardBody.appendChild(num);
@@ -231,6 +234,7 @@ let _previewBtn = null; // 目前正在播放的按鈕
 
 function stopEditorPreview() {
   speechSynthesis.cancel();
+  speechSynthesis.resume();
   if (_previewBtn) { _previewBtn.textContent = '▶ 試聽'; _previewBtn = null; }
 }
 
@@ -444,18 +448,24 @@ speedSlider.addEventListener('input', () => {
 /* ====== TTS (Web Speech API — pluggable) ====== */
 const tts = {
   provider: 'webSpeech',
+  _timer: null,
   speak(text) {
     if (!text) return;
     this.stop();
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang = TTS_LANG;
-    utt.rate = parseFloat(speedSlider.value);
-    utt.onstart = () => { btnStop.style.display = ''; btnTts.style.display = 'none'; };
-    utt.onend = utt.onerror = () => { btnStop.style.display = 'none'; btnTts.style.display = ''; };
-    speechSynthesis.speak(utt);
+    btnStop.style.display = ''; btnTts.style.display = 'none';
+    // Delay speak after cancel() to avoid Chrome speechSynthesis bug
+    this._timer = setTimeout(() => {
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = TTS_LANG;
+      utt.rate = parseFloat(speedSlider.value);
+      utt.onend = utt.onerror = () => { btnStop.style.display = 'none'; btnTts.style.display = ''; };
+      speechSynthesis.speak(utt);
+    }, 50);
   },
   stop() {
+    clearTimeout(this._timer);
     speechSynthesis.cancel();
+    speechSynthesis.resume();
     btnStop.style.display = 'none';
     btnTts.style.display  = '';
   },

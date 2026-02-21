@@ -271,7 +271,7 @@
   }
 
   function stopTts() {
-    if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+    if (typeof speechSynthesis !== 'undefined') { speechSynthesis.cancel(); speechSynthesis.resume(); }
     if (_activeTtsBtn) {
       _activeTtsBtn.textContent = '▶ 試聽';
       _activeTtsBtn = null;
@@ -293,15 +293,18 @@
     var text = title + (kpText ? '。' + kpText : '');
     if (!text) return;
 
-    var utt = new SpeechSynthesisUtterance(text);
-    utt.lang = 'zh-TW';
-    utt.rate = 0.9;
     _activeTtsBtn = btn;
     btn.textContent = '■ 停止';
-    utt.onend = utt.onerror = function () {
-      if (_activeTtsBtn === btn) { btn.textContent = '▶ 試聽'; _activeTtsBtn = null; }
-    };
-    speechSynthesis.speak(utt);
+    // Delay speak after cancel() to avoid Chrome speechSynthesis bug
+    setTimeout(function () {
+      var utt = new SpeechSynthesisUtterance(text);
+      utt.lang = 'zh-TW';
+      utt.rate = 0.9;
+      utt.onend = utt.onerror = function () {
+        if (_activeTtsBtn === btn) { btn.textContent = '▶ 試聽'; _activeTtsBtn = null; }
+      };
+      speechSynthesis.speak(utt);
+    }, 50);
   }
 
   function addField(container, field, label, value, type, index, rows) {
