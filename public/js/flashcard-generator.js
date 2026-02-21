@@ -818,7 +818,7 @@ function quizPlayCurrent() {
   const card = CARDS[quizOrder[quizCurrent]];
   quizPrompt.textContent = '聽音選字 — 第 ' + (quizCurrent + 1) + '/' + quizOrder.length + ' 題';
   quizScore.textContent = '錯誤：' + quizErrors;
-  setTimeout(() => quizTTS.speak(card.frontText), 400);
+  quizTTS.speak(card.frontText);
 }
 
 function quizSelect(idx, el) {

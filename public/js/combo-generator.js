@@ -776,7 +776,7 @@ function buildFlashcardSectionScript(prefix, cardsJSON) {
     if(qCur>=qOrder.length){qFinish();return;}
     qPrompt.textContent='聽音選字 — '+(qCur+1)+'/'+qOrder.length;
     qScore.textContent='錯誤：'+qErr;
-    setTimeout(()=>quizTTS.speak(CARDS[qOrder[qCur]].frontText),400);
+    quizTTS.speak(CARDS[qOrder[qCur]].frontText);
   }
   function qSelect(idx,el){
     if(qElim.has(idx))return;
