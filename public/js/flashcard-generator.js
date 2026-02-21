@@ -690,6 +690,14 @@ function initSpeed(sid, vid) {
   if (s && v) s.addEventListener('input', () => { v.textContent = parseFloat(s.value).toFixed(1) + 'x'; });
 }
 
+// ── Chrome TTS warmup（首次互動時喚醒 speechSynthesis）──
+document.addEventListener('click', function _ttsWarm() {
+  var u = new SpeechSynthesisUtterance('');
+  u.volume = 0;
+  speechSynthesis.speak(u);
+  document.removeEventListener('click', _ttsWarm);
+}, { once: true });
+
 // ── Mode switching ──
 document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -899,6 +907,12 @@ function immShow(idx, autoSpeak) {
 function immFlip() {
   immFlipped = !immFlipped;
   immWrapper.classList.toggle('flipped', immFlipped);
+  const chkAuto = document.getElementById('imm-auto');
+  if (chkAuto && chkAuto.checked) {
+    const c = CARDS[immOrder[immIdx]];
+    if (immFlipped) immTTS.speak(c.ttsText || c.frontText);
+    else immTTS.speak(c.frontText);
+  }
 }
 
 immWrapper?.addEventListener('click', immFlip);
@@ -906,7 +920,7 @@ document.getElementById('imm-prev')?.addEventListener('click', () => { immTTS.st
 document.getElementById('imm-next')?.addEventListener('click', () => { immTTS.stop(); if(immIdx<immOrder.length-1) immShow(immIdx+1, true); });
 document.getElementById('imm-tts')?.addEventListener('click', () => {
   const c = CARDS[immOrder[immIdx]];
-  if (immFlipped) { immTTS.speak(c.ttsText || (c.frontText + '\\n' + c.backText)); }
+  if (immFlipped) { immTTS.speak(c.ttsText || c.frontText); }
   else { immTTS.speak(c.frontText); }
 });
 document.getElementById('imm-shuffle')?.addEventListener('click', () => { immOrder = fisherYates(immOrder); immShow(0); });
@@ -932,6 +946,17 @@ document.addEventListener('keydown', (e) => {
   `;
 }
 
+// TTS 文字格式化：用句號分隔各欄位，讓語音引擎正確斷句
+function buildCardTts(title, body) {
+  if (!title && !body) return '';
+  const parts = [];
+  if (title) parts.push(title);
+  if (body) {
+    body.split(/\n/).map(l => l.trim()).filter(Boolean).forEach(line => parts.push(line));
+  }
+  return parts.join('。');
+}
+
 function assembleFlashcardHTML(cards, title, lang, type) {
   const esc = (s) => String(s)
     .replace(/&/g, '&amp;')
@@ -944,7 +969,7 @@ function assembleFlashcardHTML(cards, title, lang, type) {
       img: c.img,
       frontText: c.frontText || '',
       backText: c.backText || '',
-      ttsText: c.ttsText || (c.frontText + (c.backText ? '\n' + c.backText : ''))
+      ttsText: c.ttsText || buildCardTts(c.frontText, c.backText)
     }))
   );
 
@@ -1019,7 +1044,7 @@ function assembleFlashcardHTML(cards, title, lang, type) {
           <input type="range" id="imm-speed" min="0.5" max="2" step="0.1" value="1">
           <span id="imm-speed-val">1.0x</span>
         </div>
-        <label class="auto-label"><input type="checkbox" id="imm-auto">翻頁自動朗讀</label>
+        <label class="auto-label"><input type="checkbox" id="imm-auto" checked>翻頁自動朗讀</label>
       </div>
     </div>
     <div class="immersive-area">

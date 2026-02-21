@@ -281,9 +281,13 @@ function renderSectionPreview(key) {
       );
       body.appendChild(backField);
 
-      // TTS 朗讀文字（獨立欄位，預設 = title + body）
-      const ttsText = t.title + (t.body ? '\n' + t.body : '');
-      if (!texts[i].ttsText) texts[i].ttsText = ttsText;
+      // TTS 朗讀文字（獨立欄位，預設用句號分隔各行）
+      if (!texts[i].ttsText) {
+        const parts = [];
+        if (t.title) parts.push(t.title);
+        if (t.body) t.body.split(/\n/).map(l => l.trim()).filter(Boolean).forEach(l => parts.push(l));
+        texts[i].ttsText = parts.join('。');
+      }
 
       const ttsField = makeField(
         'TTS 朗讀文字', texts[i].ttsText,
@@ -690,7 +694,7 @@ function buildFlashcardSection(prefix, cards, title, isActive) {
           <button class="ctrl-btn" id="${prefix}-imm-shuffle">隨機</button>
           <button class="ctrl-btn" id="${prefix}-imm-reset">原序</button>
           <div class="speed-row"><span>速度</span><input type="range" id="${prefix}-imm-speed" min="0.5" max="2" step="0.1" value="1"><span id="${prefix}-imm-speed-val">1.0x</span></div>
-          <label class="auto-label"><input type="checkbox" id="${prefix}-imm-auto">翻頁自動朗讀</label>
+          <label class="auto-label"><input type="checkbox" id="${prefix}-imm-auto" checked>翻頁自動朗讀</label>
         </div>
       </div>
       <div class="immersive-area">
@@ -811,11 +815,17 @@ function buildFlashcardSectionScript(prefix, cardsJSON) {
   }
   function iFlipFn(){
     iFlip=!iFlip;iW.classList.toggle('flipped',iFlip);
+    const chkAuto=document.getElementById(P+'-imm-auto');
+    if(chkAuto && chkAuto.checked){
+      const c=CARDS[iOrder[iIdx]];
+      if(iFlip) immTTS.speak(c.ttsText||(c.frontText));
+      else immTTS.speak(c.frontText);
+    }
   }
   iW?.addEventListener('click',iFlipFn);
   document.getElementById(P+'-imm-prev')?.addEventListener('click',()=>{immTTS.stop();if(iIdx>0)iShow(iIdx-1,true);});
   document.getElementById(P+'-imm-next')?.addEventListener('click',()=>{immTTS.stop();if(iIdx<iOrder.length-1)iShow(iIdx+1,true);});
-  document.getElementById(P+'-imm-tts')?.addEventListener('click',()=>{const c=CARDS[iOrder[iIdx]];if(iFlip){immTTS.speak(c.ttsText||(c.frontText+'\\n'+c.backText));}else{immTTS.speak(c.frontText);}});
+  document.getElementById(P+'-imm-tts')?.addEventListener('click',()=>{const c=CARDS[iOrder[iIdx]];if(iFlip){immTTS.speak(c.ttsText||c.frontText);}else{immTTS.speak(c.frontText);}});
   document.getElementById(P+'-imm-shuffle')?.addEventListener('click',()=>{iOrder=fisherYates(iOrder);iShow(0);});
   document.getElementById(P+'-imm-reset')?.addEventListener('click',()=>{iOrder=[...ORIG];iShow(0);});
   if(CARDS.length>0)iShow(0);
@@ -845,14 +855,27 @@ async function assembleComboHTML(comboData, title, lang) {
   });
 
   // Build flashcard data
+  // TTS 文字格式化：用句號分隔各欄位，讓語音引擎正確斷句
+  // 例："溶。注音：ㄖㄨㄥˊ。部首：水。造詞：溶解、融化、溶劑"
+  function buildCardTts(title, body) {
+    if (!title && !body) return '';
+    const parts = [];
+    if (title) parts.push(title);
+    if (body) {
+      // 把換行、空白行轉成句號分隔
+      body.split(/\\n|\n/).map(l => l.trim()).filter(Boolean).forEach(line => parts.push(line));
+    }
+    return parts.join('。');
+  }
+
   const charCards = comboData.char.pages.map((img, i) => {
     const t = comboData.char.texts[i] || { title: '', body: '' };
-    return { img, frontText: t.title, backText: t.body, ttsText: t.ttsText || (t.title + (t.body ? '\n' + t.body : '')) };
+    return { img, frontText: t.title, backText: t.body, ttsText: t.ttsText || buildCardTts(t.title, t.body) };
   });
 
   const vocabCards = comboData.vocab.pages.map((img, i) => {
     const t = comboData.vocab.texts[i] || { title: '', body: '' };
-    return { img, frontText: t.title, backText: t.body, ttsText: t.ttsText || (t.title + (t.body ? '\n' + t.body : '')) };
+    return { img, frontText: t.title, backText: t.body, ttsText: t.ttsText || buildCardTts(t.title, t.body) };
   });
 
   const hasEbook = ebookPages.length > 0;
@@ -947,8 +970,8 @@ async function assembleComboHTML(comboData, title, lang) {
         <button class="ctrl-btn" id="eb-tts">▶ 朗讀</button>
         <button class="ctrl-btn" id="eb-stop" style="display:none">■ 停止</button>
         <div class="speed-row"><span>速度</span><input type="range" id="eb-speed" min="0.5" max="2" step="0.1" value="1"><span id="eb-speed-val">1.0x</span></div>
-        <label class="auto-label"><input type="checkbox" id="eb-chk-auto">翻頁自動朗讀</label>
-        <label class="auto-label" title="關閉時只朗讀內文，不唸標題"><input type="checkbox" id="eb-chk-title" checked>朗讀標題</label>
+        <label class="auto-label"><input type="checkbox" id="eb-chk-auto" checked>翻頁自動朗讀</label>
+        <label class="auto-label" title="關閉時只朗讀內文，不唸標題"><input type="checkbox" id="eb-chk-title">朗讀標題</label>
       </div>
       <div class="tts-bar" id="eb-tts-bar">—</div>
     </div>
@@ -1001,6 +1024,14 @@ function _sfx(type) {
     }
   } catch(e) {}
 }
+
+// ── Chrome TTS warmup（首次互動時喚醒 speechSynthesis）──
+document.addEventListener('click', function _ttsWarm() {
+  var u = new SpeechSynthesisUtterance('');
+  u.volume = 0;
+  speechSynthesis.speak(u);
+  document.removeEventListener('click', _ttsWarm);
+}, { once: true });
 
 // ── Tab switching ──
 document.querySelectorAll('.tab-nav > .tab-btn').forEach(btn => {
