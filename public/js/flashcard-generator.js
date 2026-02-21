@@ -863,6 +863,7 @@ document.getElementById('quiz-replay')?.addEventListener('click', () => {
     quizTTS.speak(CARDS[quizOrder[quizCurrent]].frontText);
   }
 });
+buildQuizGrid();
 
 // ═══════════════════════════════════
 // Immersive Mode

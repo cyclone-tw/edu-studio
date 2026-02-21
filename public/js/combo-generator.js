@@ -791,6 +791,7 @@ function buildFlashcardSectionScript(prefix, cardsJSON) {
   }
   document.getElementById(P+'-quiz-start')?.addEventListener('click',qBegin);
   document.getElementById(P+'-quiz-replay')?.addEventListener('click',()=>{if(qCur<qOrder.length)quizTTS.speak(CARDS[qOrder[qCur]].frontText);});
+  buildQGrid();
 
   // Immersive
   const immTTS=makeTTS(P+'-imm-speed');
