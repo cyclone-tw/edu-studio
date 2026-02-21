@@ -351,6 +351,10 @@ function buildFlashcardCSS() {
     .info-text { color: #a0a0b0; font-size: 0.82rem; min-width: 55px; text-align: center; }
     .speed-row { display: flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; color: #a0a0b0; }
     .speed-row input[type="range"] { width: 72px; accent-color: #00d4aa; }
+    .auto-label {
+      display: flex; align-items: center; gap: 0.35rem;
+      font-size: 0.78rem; color: #a0a0b0; cursor: pointer; white-space: nowrap;
+    }
 
     /* ── 練習模式 格線 ── */
     .practice-grid {
@@ -880,7 +884,7 @@ const immChar = document.getElementById('imm-char');
 const immImg = document.getElementById('imm-img');
 const immInfo = document.getElementById('imm-info');
 
-function immShow(idx) {
+function immShow(idx, autoSpeak) {
   immIdx = idx;
   immFlipped = false;
   immWrapper.classList.remove('flipped');
@@ -889,6 +893,8 @@ function immShow(idx) {
   immImg.src = c.img;
   immInfo.textContent = (idx+1) + ' / ' + immOrder.length;
   immTTS.stop();
+  const chkAuto = document.getElementById('imm-auto');
+  if (autoSpeak && chkAuto && chkAuto.checked) { immTTS.speak(c.frontText); }
 }
 function immFlip() {
   immFlipped = !immFlipped;
@@ -896,8 +902,8 @@ function immFlip() {
 }
 
 immWrapper?.addEventListener('click', immFlip);
-document.getElementById('imm-prev')?.addEventListener('click', () => { immTTS.stop(); if(immIdx>0) immShow(immIdx-1); });
-document.getElementById('imm-next')?.addEventListener('click', () => { immTTS.stop(); if(immIdx<immOrder.length-1) immShow(immIdx+1); });
+document.getElementById('imm-prev')?.addEventListener('click', () => { immTTS.stop(); if(immIdx>0) immShow(immIdx-1, true); });
+document.getElementById('imm-next')?.addEventListener('click', () => { immTTS.stop(); if(immIdx<immOrder.length-1) immShow(immIdx+1, true); });
 document.getElementById('imm-tts')?.addEventListener('click', () => {
   const c = CARDS[immOrder[immIdx]];
   if (immFlipped) { immTTS.speak(c.ttsText || (c.frontText + '\\n' + c.backText)); }
@@ -916,8 +922,8 @@ document.addEventListener('keydown', (e) => {
   if (id === 'mode-immersive') {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); document.getElementById('imm-next')?.click(); }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); document.getElementById('imm-prev')?.click(); }
-    if (e.key === ' ') { e.preventDefault(); immFlip(); }
-    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('imm-tts')?.click(); }
+    if (e.key === ' ') { e.preventDefault(); document.getElementById('imm-tts')?.click(); }
+    if (e.key === 'Enter') { e.preventDefault(); immFlip(); }
   }
   if (id === 'mode-quiz') {
     if (e.key === 'r' || e.key === 'R') { document.getElementById('quiz-replay')?.click(); }
@@ -1013,6 +1019,7 @@ function assembleFlashcardHTML(cards, title, lang, type) {
           <input type="range" id="imm-speed" min="0.5" max="2" step="0.1" value="1">
           <span id="imm-speed-val">1.0x</span>
         </div>
+        <label class="auto-label"><input type="checkbox" id="imm-auto">翻頁自動朗讀</label>
       </div>
     </div>
     <div class="immersive-area">

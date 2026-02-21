@@ -690,6 +690,7 @@ function buildFlashcardSection(prefix, cards, title, isActive) {
           <button class="ctrl-btn" id="${prefix}-imm-shuffle">隨機</button>
           <button class="ctrl-btn" id="${prefix}-imm-reset">原序</button>
           <div class="speed-row"><span>速度</span><input type="range" id="${prefix}-imm-speed" min="0.5" max="2" step="0.1" value="1"><span id="${prefix}-imm-speed-val">1.0x</span></div>
+          <label class="auto-label"><input type="checkbox" id="${prefix}-imm-auto">翻頁自動朗讀</label>
         </div>
       </div>
       <div class="immersive-area">
@@ -798,20 +799,22 @@ function buildFlashcardSectionScript(prefix, cardsJSON) {
   initSpeedSlider(P+'-imm-speed', P+'-imm-speed-val');
   let iOrder=[...ORIG],iIdx=0,iFlip=false;
   const iW=document.getElementById(P+'-imm-wrapper');
-  function iShow(idx){
+  function iShow(idx, autoSpeak){
     iIdx=idx;iFlip=false;iW.classList.remove('flipped');
     const c=CARDS[iOrder[idx]];
     document.getElementById(P+'-imm-char').textContent=c.frontText;
     document.getElementById(P+'-imm-img').src=c.img;
     document.getElementById(P+'-imm-info').textContent=(idx+1)+' / '+iOrder.length;
     immTTS.stop();
+    const chkAuto=document.getElementById(P+'-imm-auto');
+    if(autoSpeak && chkAuto && chkAuto.checked){ immTTS.speak(c.frontText); }
   }
   function iFlipFn(){
     iFlip=!iFlip;iW.classList.toggle('flipped',iFlip);
   }
   iW?.addEventListener('click',iFlipFn);
-  document.getElementById(P+'-imm-prev')?.addEventListener('click',()=>{immTTS.stop();if(iIdx>0)iShow(iIdx-1);});
-  document.getElementById(P+'-imm-next')?.addEventListener('click',()=>{immTTS.stop();if(iIdx<iOrder.length-1)iShow(iIdx+1);});
+  document.getElementById(P+'-imm-prev')?.addEventListener('click',()=>{immTTS.stop();if(iIdx>0)iShow(iIdx-1,true);});
+  document.getElementById(P+'-imm-next')?.addEventListener('click',()=>{immTTS.stop();if(iIdx<iOrder.length-1)iShow(iIdx+1,true);});
   document.getElementById(P+'-imm-tts')?.addEventListener('click',()=>{const c=CARDS[iOrder[iIdx]];if(iFlip){immTTS.speak(c.ttsText||(c.frontText+'\\n'+c.backText));}else{immTTS.speak(c.frontText);}});
   document.getElementById(P+'-imm-shuffle')?.addEventListener('click',()=>{iOrder=fisherYates(iOrder);iShow(0);});
   document.getElementById(P+'-imm-reset')?.addEventListener('click',()=>{iOrder=[...ORIG];iShow(0);});
@@ -1166,17 +1169,27 @@ document.addEventListener('keydown', (e) => {
   const active = document.querySelector('.tab-panel.active');
   if (!active) return;
   const id = active.id;
+  // 找出當前面板中處於 active 的子模式
+  const activeMode = active.querySelector('.mode-panel.active');
+  const modeId = activeMode ? activeMode.id : '';
+  const isImmersive = modeId.endsWith('-immersive');
+  // 取得閃卡 prefix（ch 或 vc）
+  const fcPrefix = (id === 'panel-ch') ? 'ch' : (id === 'panel-vc') ? 'vc' : '';
+
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
     e.preventDefault();
     if (id === 'panel-ebook') document.getElementById('eb-next')?.click();
+    else if (fcPrefix && isImmersive) document.getElementById(fcPrefix+'-imm-next')?.click();
   }
   if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
     e.preventDefault();
     if (id === 'panel-ebook') document.getElementById('eb-prev')?.click();
+    else if (fcPrefix && isImmersive) document.getElementById(fcPrefix+'-imm-prev')?.click();
   }
   if (e.key === ' ') {
     e.preventDefault();
     if (id === 'panel-ebook') document.getElementById('eb-tts')?.click();
+    else if (fcPrefix && isImmersive) document.getElementById(fcPrefix+'-imm-tts')?.click();
   }
 });
   </script>
