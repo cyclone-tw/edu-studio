@@ -63,8 +63,8 @@
       <button class="mode-tab active" data-mode="ai" type="button">AI 智慧生成</button>
       <button class="mode-tab" data-mode="textbook" type="button">課文忠實模式</button>
       <button class="mode-tab" data-mode="custom" type="button">完全自訂</button>
-      <button class="mode-tab" data-mode="character" type="button">生字花瓣字</button>
-      <button class="mode-tab" data-mode="vocabulary" type="button">語詞閃卡</button>
+      <button class="mode-tab" data-mode="character" type="button">生字閃卡生成</button>
+      <button class="mode-tab" data-mode="vocabulary" type="button">語詞閃卡生成</button>
     </nav>
 
     <!-- ============================== -->
@@ -228,7 +228,7 @@
           placeholder="貼上課文原文（選填），或直接拖曳課文檔案..." rows="6"></textarea>
       </div>
 
-      <!-- Character (生字花瓣字) mode input -->
+      <!-- Character (生字閃卡) mode input -->
       <div class="input-area hidden" id="characterInputArea">
         <div class="drop-zone" id="characterDropZone">
           <div class="drop-zone-content">
@@ -244,10 +244,10 @@
         </div>
         <div class="file-tags" id="characterFileTags"></div>
         <textarea class="form-textarea form-textarea-lg" id="characterText"
-          placeholder="輸入生字（用空格、逗號或換行分隔）...&#10;&#10;範例：菊 花 香 秋 涼" rows="4"></textarea>
+          placeholder="輸入生字（可直接連寫、空格、逗號或換行分隔）&#10;&#10;範例：菊花香秋涼 或 菊 花 香 秋 涼" rows="4"></textarea>
       </div>
 
-      <!-- Vocabulary (語詞閃卡) mode input -->
+      <!-- Vocabulary (語詞閃卡生成) mode input -->
       <div class="input-area hidden" id="vocabularyInputArea">
         <div class="drop-zone" id="vocabularyDropZone">
           <div class="drop-zone-content">

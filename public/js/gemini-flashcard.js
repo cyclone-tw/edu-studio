@@ -17,15 +17,35 @@
       throw new Error('請先設定 Gemini API Key');
     }
 
+    // Preprocess: split characters by any separator or no separator
+    // Supports: 菊花香秋涼 / 菊 花 香 / 菊,花,香 / 菊、花、香 / newline separated
+    var normalizedText = (text || '').trim();
+    if (normalizedText) {
+      var chars = normalizedText
+        .replace(/[\s,，、\n\r]+/g, '')  // Remove all separators
+        .split('')                         // Split into individual characters
+        .filter(function (c) { return c.trim(); });
+      // Deduplicate while preserving order
+      var seen = {};
+      var unique = [];
+      for (var ci = 0; ci < chars.length; ci++) {
+        if (!seen[chars[ci]]) {
+          seen[chars[ci]] = true;
+          unique.push(chars[ci]);
+        }
+      }
+      normalizedText = unique.join(' ');
+    }
+
     var materialSection;
     if (files && files.length > 0) {
       materialSection = '## 素材\n\n'
         + '以下附加了 ' + files.length + ' 個檔案（截圖/PDF），請用 OCR 辨識其中的生字。\n';
-      if (text && text.trim()) {
-        materialSection += '使用者另外補充的文字：\n' + text + '\n';
+      if (normalizedText) {
+        materialSection += '使用者另外補充的文字：\n' + normalizedText + '\n';
       }
     } else {
-      materialSection = '## 生字列表\n\n' + text + '\n';
+      materialSection = '## 生字列表\n\n' + normalizedText + '\n';
     }
 
     var prompt = '你是國小語文教材設計專家。根據提供的生字，為每個字設計「意象圖」圖像提示及學習資訊。\n\n'
