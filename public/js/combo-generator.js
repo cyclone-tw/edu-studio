@@ -945,6 +945,7 @@ async function assembleComboHTML(comboData, title, lang) {
         <button class="ctrl-btn" id="eb-stop" style="display:none">■ 停止</button>
         <div class="speed-row"><span>速度</span><input type="range" id="eb-speed" min="0.5" max="2" step="0.1" value="1"><span id="eb-speed-val">1.0x</span></div>
         <label class="auto-label"><input type="checkbox" id="eb-chk-auto">翻頁自動朗讀</label>
+        <label class="auto-label" title="關閉時只朗讀內文，不唸標題"><input type="checkbox" id="eb-chk-title" checked>朗讀標題</label>
       </div>
       <div class="tts-bar" id="eb-tts-bar">—</div>
     </div>
@@ -1079,7 +1080,11 @@ initSpeedSlider('eb-speed', 'eb-speed-val');
 function eb_getText(idx) {
   const p = ebook_PAGES[idx];
   if (!p) return '';
-  return [p.textTitle, p.textBody].filter(Boolean).join('。');
+  const chkTitle = document.getElementById('eb-chk-title');
+  if (chkTitle && chkTitle.checked) {
+    return [p.textTitle, p.textBody].filter(Boolean).join('。');
+  }
+  return p.textBody || p.textTitle || '';
 }
 function eb_updateUI(idx) {
   eb_idx = idx;
