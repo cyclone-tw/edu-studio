@@ -819,7 +819,15 @@ function buildFlashcardSectionScript(prefix, cardsJSON) {
 `;
 }
 
-function assembleComboHTML(comboData, title, lang) {
+async function assembleComboHTML(comboData, title, lang) {
+  // 載入 StPageFlip 庫（電子書翻頁特效）
+  let pageFlipLib = '';
+  if (comboData.ebook.pages.length > 0) {
+    try {
+      const libRes = await fetch('/js/page-flip.browser.js');
+      if (libRes.ok) pageFlipLib = await libRes.text();
+    } catch (e) { console.warn('[combo] page-flip.browser.js load failed, using simple viewer'); }
+  }
   const esc = (s) => String(s)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -849,8 +857,8 @@ function assembleComboHTML(comboData, title, lang) {
 
   const tabs = [];
   if (hasEbook) tabs.push({ id: 'ebook', label: '電子書' });
-  if (hasChar)  tabs.push({ id: 'char',  label: '生字閃卡' });
-  if (hasVocab) tabs.push({ id: 'vocab', label: '語詞閃卡' });
+  if (hasChar)  tabs.push({ id: 'ch',    label: '生字閃卡' });
+  if (hasVocab) tabs.push({ id: 'vc',    label: '語詞閃卡' });
 
   return `<!DOCTYPE html>
 <html lang="${esc(lang)}">
@@ -900,7 +908,7 @@ function assembleComboHTML(comboData, title, lang) {
       flex-shrink: 0;
       background: #14141f;
       border-bottom: 1px solid #2a2a3e;
-      padding: 0.45rem 0.75rem;
+      padding: 0.45rem 0.75rem 0.35rem;
     }
     .ebook-ctrl .controls {
       display: flex; align-items: center; gap: 0.45rem; justify-content: center; flex-wrap: wrap;
@@ -910,7 +918,12 @@ function assembleComboHTML(comboData, title, lang) {
       display: flex; justify-content: center; align-items: center;
     }
     .ebook-area img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    #eb-book canvas { display: block; }
     .tts-bar { font-size: 0.78rem; color: #a0a0b0; text-align: center; padding: 0.2rem 0.5rem; }
+    .auto-label {
+      display: flex; align-items: center; gap: 0.35rem;
+      font-size: 0.78rem; color: #a0a0b0; cursor: pointer; white-space: nowrap;
+    }
 
     ${buildFlashcardCSS()}
   </style>
@@ -928,16 +941,19 @@ function assembleComboHTML(comboData, title, lang) {
         <span class="info-text" id="eb-info">1 / ${ebookPages.length}</span>
         <button class="ctrl-btn" id="eb-next">下一頁 ▶</button>
         <button class="ctrl-btn" id="eb-tts">▶ 朗讀</button>
+        <button class="ctrl-btn" id="eb-stop" style="display:none">■ 停止</button>
         <div class="speed-row"><span>速度</span><input type="range" id="eb-speed" min="0.5" max="2" step="0.1" value="1"><span id="eb-speed-val">1.0x</span></div>
+        <label class="auto-label"><input type="checkbox" id="eb-chk-auto">翻頁自動朗讀</label>
       </div>
       <div class="tts-bar" id="eb-tts-bar">—</div>
     </div>
-    <div class="ebook-area"><img id="eb-img" src="" alt=""></div>
+    <div class="ebook-area">${pageFlipLib ? '<div id="eb-book"></div>' : '<img id="eb-img" src="" alt="">'}</div>
   </div>` : ''}
 
-  ${hasChar ? buildFlashcardSection('ch', charCards, '生字閃卡', !hasEbook && tabs[0]?.id === 'char') : ''}
-  ${hasVocab ? buildFlashcardSection('vc', vocabCards, '語詞閃卡', !hasEbook && !hasChar && tabs[0]?.id === 'vocab') : ''}
+  ${hasChar ? buildFlashcardSection('ch', charCards, '生字閃卡', !hasEbook && tabs[0]?.id === 'ch') : ''}
+  ${hasVocab ? buildFlashcardSection('vc', vocabCards, '語詞閃卡', !hasEbook && !hasChar && tabs[0]?.id === 'vc') : ''}
 
+  ${pageFlipLib ? `<script>${pageFlipLib}</script>` : ''}
   <script>
 const TTS_LANG = ${JSON.stringify(lang)};
 
@@ -1028,24 +1044,112 @@ ${hasEbook ? `
 // ═══ Ebook ═══
 const ebook_PAGES = ${JSON.stringify(ebookPages)};
 let eb_idx = 0;
-const eb_tts = makeTTS('eb-speed');
+const eb_btnTts = document.getElementById('eb-tts');
+const eb_btnStop = document.getElementById('eb-stop');
+const eb_tts = {
+  _timer: null,
+  speak(text) {
+    if (!text) return;
+    this.stop();
+    if (eb_btnStop) { eb_btnStop.style.display = ''; }
+    if (eb_btnTts) { eb_btnTts.style.display = 'none'; }
+    this._timer = setTimeout(() => {
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = TTS_LANG;
+      const s = document.getElementById('eb-speed');
+      utt.rate = s ? parseFloat(s.value) : 1;
+      utt.onend = utt.onerror = () => {
+        if (eb_btnStop) eb_btnStop.style.display = 'none';
+        if (eb_btnTts) eb_btnTts.style.display = '';
+      };
+      speechSynthesis.speak(utt);
+    }, 50);
+  },
+  stop() {
+    clearTimeout(this._timer);
+    speechSynthesis.cancel();
+    speechSynthesis.resume();
+    if (eb_btnStop) eb_btnStop.style.display = 'none';
+    if (eb_btnTts) eb_btnTts.style.display = '';
+  }
+};
 initSpeedSlider('eb-speed', 'eb-speed-val');
 
-function eb_show(idx) {
-  eb_idx = idx;
-  eb_tts.stop();
-  document.getElementById('eb-img').src = ebook_PAGES[idx].img;
-  document.getElementById('eb-info').textContent = (idx+1) + ' / ' + ebook_PAGES.length;
-  const t = ebook_PAGES[idx];
-  document.getElementById('eb-tts-bar').textContent = [t.textTitle, t.textBody].filter(Boolean).join('。') || '—';
+function eb_getText(idx) {
+  const p = ebook_PAGES[idx];
+  if (!p) return '';
+  return [p.textTitle, p.textBody].filter(Boolean).join('。');
 }
-document.getElementById('eb-prev').addEventListener('click', () => { if(eb_idx>0) eb_show(eb_idx-1); });
-document.getElementById('eb-next').addEventListener('click', () => { if(eb_idx<ebook_PAGES.length-1) eb_show(eb_idx+1); });
-document.getElementById('eb-tts').addEventListener('click', () => {
-  const t = ebook_PAGES[eb_idx];
-  eb_tts.speak([t.textTitle, t.textBody].filter(Boolean).join('。'));
+function eb_updateUI(idx) {
+  eb_idx = idx;
+  document.getElementById('eb-info').textContent = (idx+1) + ' / ' + ebook_PAGES.length;
+  document.getElementById('eb-tts-bar').textContent = eb_getText(idx) || '—';
+  const chkAuto = document.getElementById('eb-chk-auto');
+  if (chkAuto && chkAuto.checked) {
+    const text = eb_getText(idx);
+    if (text) eb_tts.speak(text);
+  }
+}
+` + (pageFlipLib ? `
+// PageFlip mode
+const eb_bookEl = document.getElementById('eb-book');
+const eb_bookCont = eb_bookEl.parentElement;
+let eb_pf;
+function eb_calcSize() {
+  const aw = eb_bookCont.clientWidth;
+  const ah = eb_bookCont.clientHeight;
+  if (aw / ah >= 16 / 9) return { w: Math.floor(ah * 16 / 9), h: ah };
+  return { w: aw, h: Math.floor(aw * 9 / 16) };
+}
+function eb_initFlip() {
+  eb_bookEl.innerHTML = '';
+  const { w, h } = eb_calcSize();
+  ebook_PAGES.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'width:100%;height:100%;background:#000;overflow:hidden;';
+    const img = document.createElement('img');
+    img.src = p.img;
+    img.alt = '第' + (i+1) + '頁';
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;';
+    div.appendChild(img);
+    eb_bookEl.appendChild(div);
+  });
+  eb_pf = new St.PageFlip(eb_bookEl, {
+    width: w, height: h, size: 'fixed',
+    usePortrait: true, showCover: false, flippingTime: 450,
+    useMouseEvents: true, swipeDistance: 30
+  });
+  eb_pf.loadFromHTML(eb_bookEl.querySelectorAll('div'));
+  eb_pf.on('flip', (e) => { eb_tts.stop(); eb_updateUI(e.data); });
+  eb_updateUI(0);
+}
+let eb_resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(eb_resizeTimer);
+  eb_resizeTimer = setTimeout(() => {
+    const curIdx = eb_pf ? eb_pf.getCurrentPageIndex() : 0;
+    eb_tts.stop();
+    eb_initFlip();
+    if (curIdx > 0) setTimeout(() => eb_pf.flip(curIdx, 'top'), 50);
+  }, 250);
 });
+eb_initFlip();
+document.getElementById('eb-prev').addEventListener('click', () => { eb_tts.stop(); eb_pf.flipPrev(); });
+document.getElementById('eb-next').addEventListener('click', () => { eb_tts.stop(); eb_pf.flipNext(); });
+eb_btnTts.addEventListener('click', () => eb_tts.speak(eb_getText(eb_pf.getCurrentPageIndex())));
+eb_btnStop.addEventListener('click', () => eb_tts.stop());
+` : `
+// Simple image viewer (no PageFlip)
+function eb_show(idx) {
+  eb_updateUI(idx);
+  document.getElementById('eb-img').src = ebook_PAGES[idx].img;
+}
+document.getElementById('eb-prev').addEventListener('click', () => { if(eb_idx>0) { eb_tts.stop(); eb_show(eb_idx-1); } });
+document.getElementById('eb-next').addEventListener('click', () => { if(eb_idx<ebook_PAGES.length-1) { eb_tts.stop(); eb_show(eb_idx+1); } });
+eb_btnTts.addEventListener('click', () => eb_tts.speak(eb_getText(eb_idx)));
+eb_btnStop.addEventListener('click', () => eb_tts.stop());
 eb_show(0);
+`) + `
 ` : ''}
 
 ${hasChar ? buildFlashcardSectionScript('ch', JSON.stringify(charCards)) : ''}
@@ -1104,7 +1208,7 @@ comboBtn.addEventListener('click', async () => {
     const lang  = document.getElementById('combo-tts-lang').value;
 
     progressFillEl.style.width = '60%';
-    const html = assembleComboHTML(comboState, title, lang);
+    const html = await assembleComboHTML(comboState, title, lang);
     progressFillEl.style.width = '100%';
 
     const filename = title.replace(/[^\w\u4e00-\u9fff-]/g, '_') + '_三合一.html';
