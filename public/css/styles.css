@@ -1918,6 +1918,20 @@ body {
   max-width: 120px;
 }
 
+.flashcard-tts-btn {
+  margin-top: 8px;
+  padding: 6px 16px !important;
+  font-size: 0.95rem !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-radius: var(--radius-sm) !important;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.flashcard-tts-btn:hover {
+  opacity: 0.85;
+}
+
 /* ── Responsive for new components ── */
 @media (max-width: 768px) {
   .gd-color-row,

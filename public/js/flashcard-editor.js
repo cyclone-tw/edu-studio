@@ -14,6 +14,7 @@
   var previewEl = null;
   var updateCallback = null;
   var debounceTimer = null;
+  var _activeTtsBtn = null; // track active TTS preview button
 
   function init(container, preview, onUpdate) {
     containerEl = container;
@@ -242,12 +243,65 @@
       addField(body, 'key_points', '解釋 + 例句 (一行一項)', kpValue, 'textarea', index, 3);
     }
 
+    // Key points for character mode (read-only display)
+    if (cardType === 'character') {
+      var charKp = (content && content.key_points) || card.key_points || [];
+      var charKpValue = Array.isArray(charKp) ? charKp.join('\n') : '';
+      addField(body, 'key_points', '注音 / 部首 / 造詞', charKpValue, 'textarea', index, 3);
+    }
+
+    // TTS preview button
+    var ttsBtn = document.createElement('button');
+    ttsBtn.className = 'card-action-btn flashcard-tts-btn';
+    ttsBtn.textContent = '▶ 試聽';
+    ttsBtn.title = '朗讀此卡片';
+    (function (idx, btn) {
+      btn.addEventListener('click', function () {
+        speakCard(idx, btn);
+      });
+    })(index, ttsBtn);
+    body.appendChild(ttsBtn);
+
     // Visual description
     var visualDesc = card.visual_description || '';
     addField(body, 'visual_description', 'AI 繪圖提示 (Visual Prompt)', visualDesc, 'textarea', index, 2);
 
     el.appendChild(body);
     return el;
+  }
+
+  function stopTts() {
+    if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+    if (_activeTtsBtn) {
+      _activeTtsBtn.textContent = '▶ 試聽';
+      _activeTtsBtn = null;
+    }
+  }
+
+  function speakCard(index, btn) {
+    // Toggle off if same button
+    if (_activeTtsBtn === btn) { stopTts(); return; }
+    stopTts();
+
+    var card = cardsData[index];
+    if (!card) return;
+
+    var content = card.content || card;
+    var title = (content && content.title) || card.title || '';
+    var kp = (content && content.key_points) || card.key_points || [];
+    var kpText = Array.isArray(kp) ? kp.join('。') : '';
+    var text = title + (kpText ? '。' + kpText : '');
+    if (!text) return;
+
+    var utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'zh-TW';
+    utt.rate = 0.9;
+    _activeTtsBtn = btn;
+    btn.textContent = '■ 停止';
+    utt.onend = utt.onerror = function () {
+      if (_activeTtsBtn === btn) { btn.textContent = '▶ 試聽'; _activeTtsBtn = null; }
+    };
+    speechSynthesis.speak(utt);
   }
 
   function addField(container, field, label, value, type, index, rows) {
