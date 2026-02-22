@@ -789,15 +789,31 @@ let quizCurrent = 0;
 let quizErrors = 0;
 let quizStartTime = 0;
 let quizEliminated = new Set();
+let quizGroupSize = 0;
+let quizAllShuffled = [];
+let quizGroupIdx = 0;
+let quizGroups = [];
+let quizStarted = false;
 
 const quizGrid = document.getElementById('quiz-grid');
 const quizPrompt = document.getElementById('quiz-prompt');
 const quizScore = document.getElementById('quiz-score');
 const quizResultEl = document.getElementById('quiz-result');
 
+function quizMakeGroups() {
+  quizAllShuffled = fisherYates(ORIG);
+  const gs = quizGroupSize || quizAllShuffled.length;
+  quizGroups = [];
+  for (let i = 0; i < quizAllShuffled.length; i += gs) {
+    quizGroups.push(quizAllShuffled.slice(i, i + gs));
+  }
+}
+
 function buildQuizGrid() {
   quizGrid.innerHTML = '';
+  const activeSet = quizStarted ? new Set(quizOrder) : null;
   CARDS.forEach((card, i) => {
+    if (activeSet && !activeSet.has(i)) return;
     const el = document.createElement('div');
     el.className = 'quiz-card' + (quizEliminated.has(i) ? ' eliminated' : '');
     el.dataset.idx = i;
@@ -808,11 +824,20 @@ function buildQuizGrid() {
 }
 
 function quizStart() {
-  quizOrder = fisherYates(ORIG);
-  quizCurrent = 0;
+  const sel = document.getElementById('quiz-group');
+  quizGroupSize = sel ? parseInt(sel.value) : 0;
+  quizGroupIdx = 0;
   quizErrors = 0;
-  quizEliminated = new Set();
   quizStartTime = Date.now();
+  quizStarted = true;
+  quizMakeGroups();
+  quizStartGroup();
+}
+
+function quizStartGroup() {
+  quizOrder = quizGroups[quizGroupIdx];
+  quizCurrent = 0;
+  quizEliminated = new Set();
   quizResultEl.style.display = 'none';
   buildQuizGrid();
   quizPlayCurrent();
@@ -820,11 +845,18 @@ function quizStart() {
 
 function quizPlayCurrent() {
   if (quizCurrent >= quizOrder.length) {
-    quizFinish();
+    quizGroupIdx++;
+    if (quizGroupIdx >= quizGroups.length) {
+      quizFinish();
+    } else {
+      quizStartGroup();
+    }
     return;
   }
   const card = CARDS[quizOrder[quizCurrent]];
-  quizPrompt.textContent = '聽音選字 — 第 ' + (quizCurrent + 1) + '/' + quizOrder.length + ' 題';
+  const groupInfo = quizGroups.length > 1
+    ? '（第' + (quizGroupIdx + 1) + '/' + quizGroups.length + '組）' : '';
+  quizPrompt.textContent = '聽音選字 ' + groupInfo + ' — ' + (quizCurrent + 1) + '/' + quizOrder.length;
   quizScore.textContent = '錯誤：' + quizErrors;
   quizTTS.speak(card.frontText);
 }
@@ -854,7 +886,7 @@ function quizSelect(idx, el) {
 
 function quizFinish() {
   const elapsed = Math.round((Date.now() - quizStartTime) / 1000);
-  const total = quizOrder.length;
+  const total = quizAllShuffled.length;
   const pct = Math.round(((total * total) / (total * total + quizErrors * total)) * 100);
   _sfx('fanfare');
   quizPrompt.textContent = '測驗完成！';
@@ -865,13 +897,13 @@ function quizFinish() {
     '<div class="stat">錯誤次數：' + quizErrors + '</div>' +
     '<div class="stat">耗時：' + elapsed + ' 秒</div>' +
     '<div class="stat">正確率：' + pct + '%</div>' +
-    '<button class="retry-btn" id="quiz-retry">重新開始</button>';
+    '<button class="retry-btn" id="quiz-retry">再測一次</button>';
   document.getElementById('quiz-retry').addEventListener('click', quizStart);
 }
 
 document.getElementById('quiz-start')?.addEventListener('click', quizStart);
 document.getElementById('quiz-replay')?.addEventListener('click', () => {
-  if (quizCurrent < quizOrder.length) {
+  if (quizStarted && quizCurrent < quizOrder.length) {
     quizTTS.speak(CARDS[quizOrder[quizCurrent]].frontText);
   }
 });
@@ -952,7 +984,12 @@ function buildCardTts(title, body) {
   const parts = [];
   if (title) parts.push(title);
   if (body) {
-    body.split(/\n/).map(l => l.trim()).filter(Boolean).forEach(line => parts.push(line));
+    body.split(/\n/).map(l => l.trim()).filter(Boolean).forEach(line => {
+      if (/^注音[：:]/.test(line)) return;
+      const bm = line.match(/^部首[：:]\s*(.+)/);
+      if (bm) { parts.push(bm[1].trim() + '部'); return; }
+      parts.push(line);
+    });
   }
   return parts.join('。');
 }
@@ -1009,8 +1046,13 @@ function assembleFlashcardHTML(cards, title, lang, type) {
     <div class="ctrl-bar">
       <div class="title-row">${esc(title)} — 測驗模式</div>
       <div class="controls">
-        <button class="ctrl-btn" id="quiz-start">重新開始</button>
+        <button class="ctrl-btn" id="quiz-start">開始測驗</button>
         <button class="ctrl-btn" id="quiz-replay">重播讀音</button>
+        <select class="ctrl-btn" id="quiz-group">
+          <option value="3">3 張</option>
+          <option value="5">5 張</option>
+          <option value="0" selected>全部</option>
+        </select>
         <div class="speed-row">
           <span>速度</span>
           <input type="range" id="quiz-speed" min="0.5" max="2" step="0.1" value="1">
@@ -1020,7 +1062,7 @@ function assembleFlashcardHTML(cards, title, lang, type) {
     </div>
     <div class="quiz-area" style="position:relative">
       <div class="quiz-status">
-        <div class="quiz-prompt" id="quiz-prompt">點擊「重新開始」開始測驗</div>
+        <div class="quiz-prompt" id="quiz-prompt">點擊「開始測驗」</div>
         <div class="quiz-score" id="quiz-score"></div>
       </div>
       <div class="quiz-grid" id="quiz-grid"></div>

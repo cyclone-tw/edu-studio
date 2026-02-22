@@ -285,7 +285,12 @@ function renderSectionPreview(key) {
       if (!texts[i].ttsText) {
         const parts = [];
         if (t.title) parts.push(t.title);
-        if (t.body) t.body.split(/\n/).map(l => l.trim()).filter(Boolean).forEach(l => parts.push(l));
+        if (t.body) t.body.split(/\n/).map(l => l.trim()).filter(Boolean).forEach(l => {
+          if (/^注音[：:]/.test(l)) return;
+          const bm = l.match(/^部首[：:]\s*(.+)/);
+          if (bm) { parts.push(bm[1].trim() + '部'); return; }
+          parts.push(l);
+        });
         texts[i].ttsText = parts.join('。');
       }
 
@@ -669,14 +674,19 @@ function buildFlashcardSection(prefix, cards, title, isActive) {
     <div class="mode-panel" id="mode-${prefix}-quiz">
       <div class="ctrl-bar">
         <div class="controls">
-          <button class="ctrl-btn" id="${prefix}-quiz-start">重新開始</button>
+          <button class="ctrl-btn" id="${prefix}-quiz-start">開始測驗</button>
           <button class="ctrl-btn" id="${prefix}-quiz-replay">重播讀音</button>
+          <select class="ctrl-btn" id="${prefix}-quiz-group">
+            <option value="3">3 張</option>
+            <option value="5">5 張</option>
+            <option value="0" selected>全部</option>
+          </select>
           <div class="speed-row"><span>速度</span><input type="range" id="${prefix}-quiz-speed" min="0.5" max="2" step="0.1" value="1"><span id="${prefix}-quiz-speed-val">1.0x</span></div>
         </div>
       </div>
       <div class="quiz-area" style="position:relative">
         <div class="quiz-status">
-          <div class="quiz-prompt" id="${prefix}-quiz-prompt">點擊「重新開始」</div>
+          <div class="quiz-prompt" id="${prefix}-quiz-prompt">點擊「開始測驗」</div>
           <div class="quiz-score" id="${prefix}-quiz-score"></div>
         </div>
         <div class="quiz-grid" id="${prefix}-quiz-grid"></div>
@@ -757,14 +767,26 @@ function buildFlashcardSectionScript(prefix, cardsJSON) {
   const quizTTS = makeTTS(P+'-quiz-speed');
   initSpeedSlider(P+'-quiz-speed', P+'-quiz-speed-val');
   let qOrder=[], qCur=0, qErr=0, qStart=0, qElim=new Set();
+  let qGroupSize=0, qAllShuffled=[], qGroupIdx=0, qGroups=[], qStarted=false;
   const qGrid=document.getElementById(P+'-quiz-grid');
   const qPrompt=document.getElementById(P+'-quiz-prompt');
   const qScore=document.getElementById(P+'-quiz-score');
   const qResult=document.getElementById(P+'-quiz-result');
 
+  function qMakeGroups(){
+    qAllShuffled=fisherYates(ORIG);
+    const gs=qGroupSize||qAllShuffled.length;
+    qGroups=[];
+    for(let i=0;i<qAllShuffled.length;i+=gs){
+      qGroups.push(qAllShuffled.slice(i,i+gs));
+    }
+  }
+
   function buildQGrid(){
     qGrid.innerHTML='';
+    const activeSet=qStarted?new Set(qOrder):null;
     CARDS.forEach((card,i)=>{
+      if(activeSet&&!activeSet.has(i))return;
       const el=document.createElement('div');
       el.className='quiz-card'+(qElim.has(i)?' eliminated':'');
       el.innerHTML='<div class="quiz-char" style="font-size:'+pracFS(card.frontText)+'">'+escH(card.frontText)+'</div>';
@@ -773,12 +795,28 @@ function buildFlashcardSectionScript(prefix, cardsJSON) {
     });
   }
   function qBegin(){
-    qOrder=fisherYates(ORIG);qCur=0;qErr=0;qElim=new Set();qStart=Date.now();
-    qResult.style.display='none';buildQGrid();qPlay();
+    const sel=document.getElementById(P+'-quiz-group');
+    qGroupSize=sel?parseInt(sel.value):0;
+    qGroupIdx=0;qErr=0;qStart=Date.now();qStarted=true;
+    qMakeGroups();
+    qStartGroup();
+  }
+  function qStartGroup(){
+    qOrder=qGroups[qGroupIdx];
+    qCur=0;qElim=new Set();
+    qResult.style.display='none';
+    buildQGrid();
+    qPlay();
   }
   function qPlay(){
-    if(qCur>=qOrder.length){qFinish();return;}
-    qPrompt.textContent='聽音選字 — '+(qCur+1)+'/'+qOrder.length;
+    if(qCur>=qOrder.length){
+      qGroupIdx++;
+      if(qGroupIdx>=qGroups.length){qFinish();}
+      else{qStartGroup();}
+      return;
+    }
+    const groupInfo=qGroups.length>1?'（第'+(qGroupIdx+1)+'/'+qGroups.length+'組）':'';
+    qPrompt.textContent='聽音選字 '+groupInfo+' — '+(qCur+1)+'/'+qOrder.length;
     qScore.textContent='錯誤：'+qErr;
     quizTTS.speak(CARDS[qOrder[qCur]].frontText);
   }
@@ -788,14 +826,14 @@ function buildFlashcardSectionScript(prefix, cardsJSON) {
     else{_sfx('wrong');qErr++;qScore.textContent='錯誤：'+qErr;el.classList.add('wrong');setTimeout(()=>el.classList.remove('wrong'),600);}
   }
   function qFinish(){
-    const t=Math.round((Date.now()-qStart)/1000),n=qOrder.length,pct=Math.round((n*n)/(n*n+qErr*n)*100);
+    const t=Math.round((Date.now()-qStart)/1000),n=qAllShuffled.length,pct=Math.round((n*n)/(n*n+qErr*n)*100);
     _sfx('fanfare');qPrompt.textContent='完成！';
     qResult.style.display='flex';
-    qResult.innerHTML='<h2>測驗結果</h2><div class="stat">總題數：'+n+'</div><div class="stat">錯誤：'+qErr+'</div><div class="stat">耗時：'+t+'秒</div><div class="stat">正確率：'+pct+'%</div><button class="retry-btn" id="'+P+'-quiz-retry">重新開始</button>';
+    qResult.innerHTML='<h2>測驗結果</h2><div class="stat">總題數：'+n+'</div><div class="stat">錯誤：'+qErr+'</div><div class="stat">耗時：'+t+'秒</div><div class="stat">正確率：'+pct+'%</div><button class="retry-btn" id="'+P+'-quiz-retry">再測一次</button>';
     document.getElementById(P+'-quiz-retry')?.addEventListener('click',qBegin);
   }
   document.getElementById(P+'-quiz-start')?.addEventListener('click',qBegin);
-  document.getElementById(P+'-quiz-replay')?.addEventListener('click',()=>{if(qCur<qOrder.length)quizTTS.speak(CARDS[qOrder[qCur]].frontText);});
+  document.getElementById(P+'-quiz-replay')?.addEventListener('click',()=>{if(qStarted&&qCur<qOrder.length)quizTTS.speak(CARDS[qOrder[qCur]].frontText);});
   buildQGrid();
 
   // Immersive
@@ -862,8 +900,12 @@ async function assembleComboHTML(comboData, title, lang) {
     const parts = [];
     if (title) parts.push(title);
     if (body) {
-      // 把換行、空白行轉成句號分隔
-      body.split(/\\n|\n/).map(l => l.trim()).filter(Boolean).forEach(line => parts.push(line));
+      body.split(/\\n|\n/).map(l => l.trim()).filter(Boolean).forEach(line => {
+        if (/^注音[：:]/.test(line)) return;
+        const bm = line.match(/^部首[：:]\s*(.+)/);
+        if (bm) { parts.push(bm[1].trim() + '部'); return; }
+        parts.push(line);
+      });
     }
     return parts.join('。');
   }
