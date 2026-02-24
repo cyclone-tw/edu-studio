@@ -357,7 +357,7 @@ function buildFlashcardCSS() {
     .mode-btn:hover { background: #1a1a2e; color: #e8e8e8; }
     .mode-btn.active { background: #00d4aa; color: #000; font-weight: 700; }
 
-    .mode-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+    .mode-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; min-height: 0; }
     .mode-panel.active { display: flex; }
 
     /* ── 共用控制列 ── */
@@ -402,6 +402,7 @@ function buildFlashcardCSS() {
     /* ── 練習模式 格線 ── */
     .practice-grid {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
       padding: 1rem;
       display: grid;
@@ -464,7 +465,7 @@ function buildFlashcardCSS() {
     }
 
     /* ── 測驗模式 ── */
-    .quiz-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .quiz-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
     .quiz-status {
       text-align: center;
       padding: 0.75rem;
@@ -483,6 +484,7 @@ function buildFlashcardCSS() {
     }
     .quiz-grid {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
       padding: 1rem;
       display: grid;
@@ -969,7 +971,7 @@ async function assembleComboHTML(comboData, title, lang) {
     .tab-btn:hover { background: #1a1a2e; color: #e8e8e8; }
     .tab-btn.active { background: #00d4aa; color: #000; font-weight: 700; }
 
-    .tab-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+    .tab-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; min-height: 0; }
     .tab-panel.active { display: flex; }
 
     /* Ebook */
