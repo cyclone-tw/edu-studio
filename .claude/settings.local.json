@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for id in btnCopyYaml yamlPreview outlineEditor helpModal btnOpenHelp btnCloseHelp btnHelpOk)",
+      "Bash(do)",
+      "Bash(if grep -q \"id=\"\"$id\"\"\" index.html)",
+      "Bash(then)",
+      "Bash(else)",
+      "Bash(fi)",
+      "Bash(done)",
+      "WebSearch",
+      "WebFetch(domain:blog.seqgen.com)",
+      "WebFetch(domain:support.google.com)",
+      "WebFetch(domain:baoyu.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:app.unpkg.com)",
+      "WebFetch(domain:www.jsdelivr.com)",
+      "WebFetch(domain:cdn.jsdelivr.net)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:libraries.io)",
+      "WebFetch(domain:pinyin.js.org)",
+      "WebFetch(domain:pinyin-pro.vercel.app)",
+      "WebFetch(domain:pinyin-pro.cn)",
+      "WebFetch(domain:app.intcome.com)",
+      "Bash(wc:*)",
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:www.aifreeapi.com)",
+      "Skill(fix)",
+      "Bash(mkdir -p \"/Users/cyclone/VibeCoding開發專案/edu-lessons-114\" && cd \"/Users/cyclone/VibeCoding開發專案/edu-lessons-114\" && git init)"
+    ]
+  }
+}
