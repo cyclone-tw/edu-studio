@@ -2,7 +2,9 @@
 
 <!-- udl-family-block v1 -->
 > **UDL 教學家族**：本 repo 是早期的 AI 教材製作工具（舊，不再開發）；家族現在的教材產生工具在 `udl-learning`。新工作不要放這裡：新教材放對應科目的 `udl-<科目>` repo，呈現與平台功能放 `udl-learning`。
+>
 > 上游：無；下游：`edu-lessons-114`（舊）。
+>
 > 家族地圖正本：`cyclone-tw/udl-learning` 的 `docs/family-map.md`（私人 repo）。要改本 repo 的角色或串接方式，先改地圖。
 <!-- /udl-family-block -->
 
